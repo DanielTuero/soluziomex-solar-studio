@@ -59,7 +59,7 @@ export function ProductsView() {
 
   return <>
     <div className="page-heading">
-      <div><p className="eyebrow">Sourcing library</p><h1>Product catalog</h1><p>Reusable equipment, current pricing, lead times, and supplier-ready specifications.</p></div>
+      <div><p className="eyebrow">Sourcing library</p><h1>Product catalog</h1><p>Reusable equipment, current pricing, and supplier-ready specifications.</p></div>
       <button className="button primary" onClick={() => setEditing("new")}><PackagePlus size={16} />Add product</button>
     </div>
     {error && <div className="error-banner">{error}</div>}
@@ -82,7 +82,6 @@ export function ProductsView() {
             <h3>{product.name}</h3>
             <div className="product-model">{product.manufacturer} · {product.model}</div>
             <div className="product-price"><div><strong>{money(Number(product.unit_cost))}</strong><small> per unit</small></div><span className={`status ${product.status.replace(" ", "-")}`}>{product.status}</span></div>
-            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, color: "#748179", fontSize: 9 }}><span>Lead time</span><strong>{product.lead_time_days} days</strong></div>
             <div className="product-actions">
               <button className="button secondary small" onClick={() => setEditing(product)}><Edit3 size={13} />Edit</button>
               <button className="button danger small" onClick={() => remove(product)}><Trash2 size={13} />Remove</button>
@@ -105,7 +104,6 @@ function ProductModal({ product, close, submit }: { product: Product | null; clo
         <Field name="manufacturer" label="Manufacturer" defaultValue={product?.manufacturer} placeholder="Manufacturer" />
         <Field name="model" label="Model" defaultValue={product?.model} placeholder="Model number" />
         <Field name="unit_cost" label="Unit price (MXN)" type="number" step="0.01" defaultValue={product?.unit_cost} required />
-        <Field name="lead_time_days" label="Lead time (days)" type="number" defaultValue={product?.lead_time_days ?? 14} />
         <Select name="status" label="Availability" options={availability} defaultValue={product?.status} />
         <div className="form-field full"><label>Description</label><textarea name="description" defaultValue={product?.description} placeholder="Technical notes, warranty, certifications…" /></div>
         <div className="form-field full"><label>{product?.has_image ? "Replace product image" : "Product image"}</label><label className="upload-box"><span><ImagePlus size={17} />{product?.has_image ? "Choose a replacement image" : "Upload JPG, PNG or WebP"}</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} /></label><span className="form-help">Leave empty to keep the current image. Maximum 5 MB.</span></div>

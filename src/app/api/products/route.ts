@@ -26,11 +26,11 @@ export async function POST(request: Request) {
     }
     const result = await database.transaction(async (tx) => {
       const inserted = await tx.query<Record<string, unknown>>(
-        `INSERT INTO products (sku, name, category, manufacturer, model, unit_cost, currency, lead_time_days, status, description)
-         VALUES ($1,$2,$3,$4,$5,$6,'MXN',$7,$8,$9) RETURNING *`,
+        `INSERT INTO products (sku, name, category, manufacturer, model, unit_cost, currency, status, description)
+         VALUES ($1,$2,$3,$4,$5,$6,'MXN',$7,$8) RETURNING *`,
         [String(form.get("sku") || "").toUpperCase(), String(form.get("name") || ""), String(form.get("category") || "Other"),
           String(form.get("manufacturer") || ""), String(form.get("model") || ""), Number(form.get("unit_cost") || 0),
-          Number(form.get("lead_time_days") || 0), String(form.get("status") || "Available"), String(form.get("description") || "")],
+          String(form.get("status") || "Available"), String(form.get("description") || "")],
       );
       if (image instanceof File && image.size > 0) {
         await tx.query("INSERT INTO product_images (product_id, mime_type, bytes, file_name) VALUES ($1,$2,$3,$4)",
