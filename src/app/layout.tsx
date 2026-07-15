@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/solar-studio.ico", type: "image/x-icon" },
-      { url: "/solar-studio-icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/solar-studio-icon.png", type: "image/png", sizes: "1024x1024" },
     ],
     shortcut: "/solar-studio.ico",
     apple: "/solar-studio-icon.png",
