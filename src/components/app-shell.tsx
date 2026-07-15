@@ -2,18 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, ClipboardList, FolderKanban, LayoutDashboard, Leaf, Search, ShieldCheck, SunMedium } from "lucide-react";
+import { useEffect } from "react";
+import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, Search, ShieldCheck, SunMedium } from "lucide-react";
 
 const navigation = [
   { href: "/", label: "Portfolio", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/products", label: "Product catalog", icon: Boxes },
   { href: "/cost-catalog", label: "Cost catalog", icon: ClipboardList },
+  { href: "/partners", label: "Partners", icon: Building2 },
+  { href: "/operations", label: "Data & history", icon: DatabaseBackup },
   { href: "/settings", label: "Security", icon: ShieldCheck },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  useEffect(() => { if (pathname !== "/unlock") void fetch("/api/backups", { cache: "no-store" }); }, []);
   if (pathname === "/unlock") return children;
   return (
     <div className="app-shell">

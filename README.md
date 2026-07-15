@@ -27,7 +27,7 @@ Remove-Item Env:SOLAR_STUDIO_PASSCODE
 
 - Portfolio economics and pipeline dashboard
 - Project creation and status tracking
-- Product catalog by category, manufacturer, model, price, availability, and lead time
+- Product catalog by category, manufacturer, model, price, and availability
 - Product editing and safe removal from the active catalog
 - Product image uploads stored in the local SQLite database
 - Editable project stages and sourcing fulfillment statuses
@@ -35,4 +35,7 @@ Remove-Item Env:SOLAR_STUDIO_PASSCODE
 - Installation and maintenance cost categories, with bill-of-materials totals automatically represented as Materials
 - 15–40 year electricity, fee, savings, ROI, NPV, and payback model
 - Installer, maintenance reserve, and Soluziomex revenue-share designer
+- Supplier and installer directory with contact details, commercial terms, active projects, and quote history
+- Manual and automatic dated database backups with safe restore controls
+- Automatic audit history across projects, products, sourcing, costs, economics, and partners
 - Seeded sample projects and commercial solar products

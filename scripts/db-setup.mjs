@@ -23,7 +23,7 @@ try {
     const sql = await readFile(resolve(migrationDirectory, name), "utf8");
     db.exec("BEGIN IMMEDIATE");
     try {
-      for (const statement of sql.split(/;\s*(?:\r?\n|$)/).map((value) => value.trim()).filter(Boolean)) db.exec(statement);
+      db.exec(sql);
       db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run(name);
       db.exec("COMMIT");
     } catch (error) {

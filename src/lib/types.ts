@@ -65,6 +65,63 @@ export type CostCatalogEntry = {
   description: string;
 };
 
+export type PartnerType = "Supplier" | "Installer" | "Both";
+
+export type PartnerProject = {
+  id: string;
+  code: string;
+  name: string;
+  relationship: "Supplier" | "Installer";
+};
+
+export type PartnerQuote = {
+  id: string;
+  partner_id: string;
+  project_id: string | null;
+  project_name: string | null;
+  reference: string;
+  quote_date: string;
+  amount: number;
+  status: "Draft" | "Requested" | "Received" | "Accepted" | "Declined" | "Expired";
+  notes: string;
+};
+
+export type Partner = {
+  id: string;
+  company_name: string;
+  partner_type: PartnerType;
+  contact_name: string;
+  email: string;
+  phone: string;
+  website: string;
+  address: string;
+  products_supplied: string;
+  installer_share_pct: number;
+  installer_share_terms: string;
+  payment_terms: string;
+  performance_notes: string;
+  status: "Active" | "Inactive";
+  projects: PartnerProject[];
+  quotes: PartnerQuote[];
+};
+
+export type AuditLog = {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  entity_name: string;
+  action: string;
+  details: string;
+  created_at: string;
+};
+
+export type DatabaseBackup = {
+  name: string;
+  kind: "Automatic" | "Manual";
+  size: number;
+  created_at: string;
+};
+
 export type RevenueModel = {
   project_id: string;
   previous_cfe_monthly_bill: number;

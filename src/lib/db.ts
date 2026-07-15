@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -12,13 +12,18 @@ declare global {
 }
 
 const configuredPath = process.env.SOLAR_STUDIO_DATA_PATH ?? "./data/solar-studio.db";
-const dataPath = resolve(/* turbopackIgnore: true */ process.cwd(), configuredPath);
+export const dataPath = resolve(/* turbopackIgnore: true */ process.cwd(), configuredPath);
 mkdirSync(dirname(dataPath), { recursive: true });
 
-const sqlite = global.solarStudioSqlite ?? new Database(dataPath);
-sqlite.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
-sqlite.function("gen_random_uuid", () => randomUUID());
-sqlite.function("now", () => new Date().toISOString());
+function openDatabase() {
+  const connection = new Database(dataPath);
+  connection.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;");
+  connection.function("gen_random_uuid", () => randomUUID());
+  connection.function("now", () => new Date().toISOString());
+  return connection;
+}
+
+let sqlite = global.solarStudioSqlite ?? openDatabase();
 if (process.env.NODE_ENV !== "production") global.solarStudioSqlite = sqlite;
 
 function compile(text: string, params: unknown[]) {
@@ -51,6 +56,54 @@ export const database = {
     }
   },
 };
+
+export async function backupDatabase(destination: string) {
+  await sqlite.backup(destination);
+}
+
+export function restoreDatabase(source: string) {
+  const check = new Database(source, { readonly: true });
+  try {
+    const result = check.pragma("quick_check") as Array<{ quick_check: string }>;
+    if (result[0]?.quick_check !== "ok") throw new Error("The selected backup did not pass its database integrity check.");
+    const required = check.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('projects','products','app_security')").all();
+    if (required.length !== 3) throw new Error("The selected file is not a complete Solar Studio backup.");
+  } finally {
+    check.close();
+  }
+
+  const tables = ["products", "product_images", "projects", "revenue_models", "project_items", "project_costs", "cost_catalog", "partners", "project_partners", "partner_quotes", "app_security", "audit_logs"];
+  const deleteOrder = ["partner_quotes", "project_partners", "partners", "project_items", "project_costs", "revenue_models", "product_images", "cost_catalog", "projects", "products", "app_security", "audit_logs"];
+  const escapedSource = source.replace(/'/g, "''");
+  sqlite.exec(`ATTACH DATABASE '${escapedSource}' AS restored`);
+  try {
+    const restoredTables = new Set((sqlite.prepare("SELECT name FROM restored.sqlite_master WHERE type='table'").all() as Array<{name:string}>).map(row => row.name));
+    const missing = tables.filter(table => !restoredTables.has(table));
+    if (missing.length) throw new Error(`This backup predates required Solar Studio data: ${missing.join(", ")}.`);
+
+    sqlite.pragma("foreign_keys = OFF");
+    sqlite.exec("BEGIN IMMEDIATE");
+    for (const table of deleteOrder) sqlite.exec(`DELETE FROM main.${table}`);
+    for (const table of tables) {
+      const mainColumns = (sqlite.prepare(`PRAGMA main.table_info(${table})`).all() as Array<{name:string}>).map(row => row.name);
+      const restoredColumns = new Set((sqlite.prepare(`PRAGMA restored.table_info(${table})`).all() as Array<{name:string}>).map(row => row.name));
+      const shared = mainColumns.filter(column => restoredColumns.has(column));
+      const columns = shared.map(column => `"${column}"`).join(",");
+      sqlite.exec(`INSERT INTO main.${table} (${columns}) SELECT ${columns} FROM restored.${table}`);
+    }
+    const violations = sqlite.pragma("foreign_key_check") as unknown[];
+    if (violations.length) throw new Error("The backup contains invalid record relationships and was not restored.");
+    sqlite.exec("COMMIT");
+  } catch (error) {
+    if (sqlite.inTransaction) sqlite.exec("ROLLBACK");
+    throw error;
+  } finally {
+    sqlite.exec("DETACH DATABASE restored");
+    sqlite.pragma("foreign_keys = ON");
+    rmSync(`${source}-wal`, { force: true });
+    rmSync(`${source}-shm`, { force: true });
+  }
+}
 
 export function dbError(error: unknown) {
   console.error(error);
