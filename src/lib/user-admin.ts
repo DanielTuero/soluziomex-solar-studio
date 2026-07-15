@@ -1,9 +1,14 @@
 import type { NextRequest } from "next/server";
-import { getAuthenticatedUserFromToken, MENU_SECTIONS, type MenuSection, SECURITY_CONFIRMATION_TTL_MS, SECURITY_REQUEST_HEADER, SESSION_COOKIE } from "@/lib/security";
+import { getAuthenticatedUserFromToken, MENU_SECTIONS, type MenuSection, SECURITY_CONFIRMATION_TTL_MS, SECURITY_REQUEST_HEADER, SESSION_COOKIE } from "./security";
 
 export function cleanPermissions(value: unknown): MenuSection[] {
   if (!Array.isArray(value)) return [];
   return [...new Set(value.filter((section):section is MenuSection => typeof section === "string" && MENU_SECTIONS.includes(section as MenuSection)))];
+}
+
+export function permissionsForRole(value: unknown, isAdmin: boolean): MenuSection[] {
+  if (isAdmin) return [...MENU_SECTIONS];
+  return [...new Set([...cleanPermissions(value), "security" as const])];
 }
 
 export async function authenticateSecurityRequest(request: NextRequest) {

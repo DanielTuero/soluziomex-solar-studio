@@ -118,7 +118,7 @@ export async function getUserPermissions(userId: string): Promise<MenuSection[]>
 
 function publicUser(user: AppUser, permissions: MenuSection[]): SessionUser {
   const { password_hash: _, ...safe } = user;
-  return { ...safe, permissions: Boolean(user.is_admin) ? [...MENU_SECTIONS] : permissions };
+  return { ...safe, permissions: Boolean(user.is_admin) ? [...MENU_SECTIONS] : [...new Set([...permissions, "security" as const])] };
 }
 
 export async function getAuthenticatedUser(token: string | undefined, state: SecurityState, maxAgeMs?: number): Promise<SessionUser | null> {

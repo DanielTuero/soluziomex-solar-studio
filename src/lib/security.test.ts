@@ -31,7 +31,7 @@ describe("local user security", () => {
     const token = security.createSessionToken(state.session_secret, "user-1");
     const user = await security.getAuthenticatedUser(token, state);
     expect(user?.username).toBe("maria");
-    expect(user?.permissions).toEqual(["projects"]);
+    expect(user?.permissions).toEqual(["projects", "security"]);
     expect(await security.getAuthenticatedUser(`${token}x`, state)).toBeNull();
   });
 
