@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const confirmedUser = await getAuthenticatedUser(request.cookies.get(SECURITY_SESSION_COOKIE)?.value, state, SECURITY_CONFIRMATION_TTL_MS);
     const securityToken = user && confirmedUser?.id === user.id ? createSessionToken(state.session_secret, user.id) : null;
     return NextResponse.json({
+      build_commit: process.env.SOLAR_STUDIO_SERVER_COMMIT ?? "unknown",
       enabled,
       authenticated: Boolean(user),
       user: user ? { id:user.id, username:user.username, display_name:user.display_name, is_admin:Boolean(user.is_admin) } : null,

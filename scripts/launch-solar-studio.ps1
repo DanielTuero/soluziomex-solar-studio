@@ -98,10 +98,13 @@ function Start-SolarStudioApp {
   Set-Content -LiteralPath $appPidPath -Value $process.ProcessId -NoNewline
 }
 
-function Test-SolarStudio {
+function Test-SolarStudio([string]$ExpectedCommit = "") {
   try {
     $response = Invoke-WebRequest -Uri "$appUrl/api/security/status" -UseBasicParsing -TimeoutSec 2
-    return $response.StatusCode -eq 200
+    if ($response.StatusCode -ne 200) { return $false }
+    if (-not $ExpectedCommit) { return $true }
+    $status = $response.Content | ConvertFrom-Json
+    return $status.build_commit -eq $ExpectedCommit
   } catch {
     return $false
   }
@@ -142,22 +145,36 @@ try {
   $currentCommit = if ($currentCommit) { $currentCommit.Trim() } else { "" }
   $builtCommit = if (Test-Path -LiteralPath $buildVersionPath) { (Get-Content -LiteralPath $buildVersionPath -Raw).Trim() } else { "" }
   $needsBuild = -not (Test-Path -LiteralPath $buildIdPath) -or -not $currentCommit -or $builtCommit -ne $currentCommit
+  $serverHealthy = Test-SolarStudio
+  $serverIsCurrent = $serverHealthy -and (Test-SolarStudio -ExpectedCommit $currentCommit)
 
   if ($needsBuild) {
-    if (Test-SolarStudio) { Stop-SolarStudio }
+    if ($serverHealthy) { Stop-SolarStudio }
     & npm.cmd run build
     if ($LASTEXITCODE -ne 0) { throw "Solar Studio could not prepare its local application files." }
     if ($currentCommit) { Set-Content -LiteralPath $buildVersionPath -Value $currentCommit -NoNewline }
+    $serverHealthy = $false
+    $serverIsCurrent = $false
+  } elseif ($serverHealthy -and -not $serverIsCurrent) {
+    Stop-SolarStudio
+    $serverHealthy = $false
   }
 
-  if (-not (Test-SolarStudio)) {
+  if (-not $serverIsCurrent) {
     Remove-Item -LiteralPath $standardLog, $errorLog -Force -ErrorAction SilentlyContinue
-    Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "start") -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput $standardLog -RedirectStandardError $errorLog
+    $previousServerCommit = $env:SOLAR_STUDIO_SERVER_COMMIT
+    try {
+      $env:SOLAR_STUDIO_SERVER_COMMIT = $currentCommit
+      Start-Process -FilePath "npm.cmd" -ArgumentList @("run", "start") -WorkingDirectory $projectRoot -WindowStyle Hidden -RedirectStandardOutput $standardLog -RedirectStandardError $errorLog
+    } finally {
+      if ($null -eq $previousServerCommit) { Remove-Item Env:SOLAR_STUDIO_SERVER_COMMIT -ErrorAction SilentlyContinue }
+      else { $env:SOLAR_STUDIO_SERVER_COMMIT = $previousServerCommit }
+    }
 
     $ready = $false
     foreach ($attempt in 1..45) {
       Start-Sleep -Seconds 1
-      if (Test-SolarStudio) { $ready = $true; break }
+      if (Test-SolarStudio -ExpectedCommit $currentCommit) { $ready = $true; break }
     }
     if (-not $ready) { throw "Solar Studio did not finish starting. Please check .solar-studio-launch.err.log in the Solar Studio folder." }
   }
