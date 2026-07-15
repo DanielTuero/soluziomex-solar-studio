@@ -66,13 +66,13 @@ export type CostCatalogEntry = {
   description: string;
 };
 
-export type PartnerType = "Supplier" | "Installer" | "Both";
+export type PartnerType = "Installer" | "CFE Technician" | "Electrician" | "CFE Office Contact";
 
 export type PartnerProject = {
   id: string;
   code: string;
   name: string;
-  relationship: "Supplier" | "Installer";
+  relationship: PartnerType;
 };
 
 export type PartnerQuote = {

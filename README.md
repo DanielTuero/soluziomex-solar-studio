@@ -35,7 +35,7 @@ Remove-Item Env:SOLAR_STUDIO_PASSCODE
 - Installation and maintenance cost categories, with bill-of-materials totals automatically represented as Materials
 - 15–40 year electricity, fee, savings, ROI, NPV, and payback model
 - Installer, maintenance reserve, and Soluziomex revenue-share designer
-- Supplier and installer directory with contact details, commercial terms, active projects, and quote history
+- Installer, electrician, CFE technician, and CFE office contact directory with commercial terms, active projects, and quote history
 - Manual and automatic dated database backups with safe restore controls
 - Automatic audit history across projects, products, sourcing, costs, economics, and partners
 - Seeded sample projects and commercial solar products
