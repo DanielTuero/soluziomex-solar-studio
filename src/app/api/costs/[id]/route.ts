@@ -13,12 +13,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
     const label = body.label === undefined ? String(existing.label) : String(body.label).trim();
     const amount = body.amount === undefined ? Number(existing.amount) : Number(body.amount);
+    const maintenanceFrequency = body.maintenance_frequency === undefined ? String(existing.maintenance_frequency || "Monthly") : String(body.maintenance_frequency);
     const notes = body.notes === undefined ? String(existing.notes) : String(body.notes);
     if (!label) return Response.json({ error: "Add a cost description." }, { status: 400 });
     if (!Number.isFinite(amount) || amount < 0) return Response.json({ error: "Enter a valid cost amount." }, { status: 400 });
+    if (!["Monthly", "Quarterly", "Semiannual", "Annual"].includes(maintenanceFrequency)) {
+      return Response.json({ error: "Choose a valid maintenance frequency." }, { status: 400 });
+    }
     const result = await query(
-      "UPDATE project_costs SET cost_category = $1, label = $2, amount = $3, notes = $4 WHERE id = $5 RETURNING *",
-      [costCategory, label, amount, notes, id],
+      "UPDATE project_costs SET cost_category = $1, label = $2, amount = $3, maintenance_frequency = $4, notes = $5 WHERE id = $6 RETURNING *",
+      [costCategory, label, amount, maintenanceFrequency, notes, id],
     );
     return Response.json({ cost: result.rows[0] });
   } catch (error) {

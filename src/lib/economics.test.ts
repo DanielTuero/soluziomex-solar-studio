@@ -40,15 +40,15 @@ describe("calculateEconomics", () => {
     expect(result.yearOneRevenue).toBe(360000);
   });
 
-  it("uses installation at T0 and maintenance as a recurring monthly charge", () => {
+  it("spreads maintenance charges across cash flow according to frequency", () => {
     const items = [{ id:"i", project_id:"p", product_id:"x", product_name:"Panel", product_model:"X", product_category:"Panels", product_sku:"PX", quantity:100, unit_price:2000, supplier:"", expected_delivery:null, status:"Planned" as const, notes:"" }];
-    const costs = [{ id:"c", project_id:"p", cost_category:"Installation" as const, cost_type:"Labor", label:"Labor", amount:100000, notes:"" }, { id:"m", project_id:"p", cost_category:"Maintenance" as const, cost_type:"Care", label:"Care", amount:1000, notes:"" }];
+    const costs = [{ id:"c", project_id:"p", cost_category:"Installation" as const, cost_type:"Labor", label:"Labor", amount:100000, maintenance_frequency:"Monthly" as const, notes:"" }, { id:"m", project_id:"p", cost_category:"Maintenance" as const, cost_type:"Care", label:"Quarterly care", amount:3000, maintenance_frequency:"Quarterly" as const, notes:"" }, { id:"a", project_id:"p", cost_category:"Maintenance" as const, cost_type:"Care", label:"Annual service", amount:12000, maintenance_frequency:"Annual" as const, notes:"" }];
     const result = calculateEconomics(project, items, costs, revenue);
     expect(result.totalProjectCost).toBe(300000);
-    expect(result.monthlyMaintenanceCost).toBe(1000);
-    expect(result.maintenanceYearOne).toBe(12000);
-    expect(result.platformYearOne).toBe(204000);
-    expect(result.series[0].cumulativePlatform).toBe(-96000);
+    expect(result.monthlyMaintenanceCost).toBe(2000);
+    expect(result.maintenanceYearOne).toBe(24000);
+    expect(result.platformYearOne).toBe(192000);
+    expect(result.series[0].cumulativePlatform).toBe(-108000);
   });
 
   it("derives stakeholder shares from amounts and ignores legacy percentage fields", () => {

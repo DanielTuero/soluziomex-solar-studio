@@ -1,4 +1,16 @@
-import type { Project, ProjectCost, ProjectItem, RevenueModel } from "./types";
+import type { MaintenanceFrequency, Project, ProjectCost, ProjectItem, RevenueModel } from "./types";
+
+export const maintenanceOccurrences: Record<MaintenanceFrequency, number> = {
+  Monthly: 12,
+  Quarterly: 4,
+  Semiannual: 2,
+  Annual: 1,
+};
+
+export function annualMaintenanceCost(cost: ProjectCost) {
+  const frequency = cost.maintenance_frequency || "Monthly";
+  return Number(cost.amount) * maintenanceOccurrences[frequency];
+}
 
 export type Economics = {
   equipmentCost: number;
@@ -48,9 +60,10 @@ export function calculateEconomics(
   const installationServicesCost = costs
     .filter((cost) => (cost.cost_category || "Installation") === "Installation")
     .reduce((sum, cost) => sum + Number(cost.amount), 0);
-  const monthlyMaintenanceCost = costs
+  const maintenanceYearOne = costs
     .filter((cost) => cost.cost_category === "Maintenance")
-    .reduce((sum, cost) => sum + Number(cost.amount), 0);
+    .reduce((sum, cost) => sum + annualMaintenanceCost(cost), 0);
+  const monthlyMaintenanceCost = maintenanceYearOne / 12;
   const softCosts = installationServicesCost;
   const totalProjectCost = equipmentCost + installationServicesCost;
   const yearOneGeneration = Number(project.capacity_kw) * Number(project.specific_yield_kwh_kw);
@@ -70,7 +83,6 @@ export function calculateEconomics(
   const monthlyInstallerPayment = Number(revenue.monthly_installer_payment || 0);
   const monthlyPlatformCash = Number(revenue.monthly_customer_fee) - monthlyInstallerPayment - monthlyMaintenanceCost;
   const installerYearOne = monthlyInstallerPayment * 12;
-  const maintenanceYearOne = monthlyMaintenanceCost * 12;
   const platformYearOne = yearOneRevenue - installerYearOne - maintenanceYearOne;
   const series: Economics["series"] = [];
   let cumulativePlatform = -totalProjectCost;

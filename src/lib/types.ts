@@ -57,8 +57,11 @@ export type ProjectCost = {
   cost_type: string;
   label: string;
   amount: number;
+  maintenance_frequency?: MaintenanceFrequency;
   notes: string;
 };
+
+export type MaintenanceFrequency = "Monthly" | "Quarterly" | "Semiannual" | "Annual";
 
 export type CostCatalogEntry = {
   id: string;
