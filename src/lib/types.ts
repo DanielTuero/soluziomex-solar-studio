@@ -59,6 +59,12 @@ export type ProjectCost = {
   notes: string;
 };
 
+export type CostCatalogEntry = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 export type RevenueModel = {
   project_id: string;
   previous_cfe_monthly_bill: number;
@@ -76,6 +82,7 @@ export type WorkspaceData = {
   project: Project;
   items: ProjectItem[];
   costs: ProjectCost[];
+  costCatalog: CostCatalogEntry[];
   revenue: RevenueModel;
   products: Product[];
 };

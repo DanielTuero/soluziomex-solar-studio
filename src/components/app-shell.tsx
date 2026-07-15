@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Boxes, FolderKanban, LayoutDashboard, Leaf, Search, ShieldCheck, SunMedium } from "lucide-react";
+import { Boxes, ClipboardList, FolderKanban, LayoutDashboard, Leaf, Search, ShieldCheck, SunMedium } from "lucide-react";
 
 const navigation = [
   { href: "/", label: "Portfolio", icon: LayoutDashboard },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/products", label: "Product catalog", icon: Boxes },
+  { href: "/cost-catalog", label: "Cost catalog", icon: ClipboardList },
   { href: "/settings", label: "Security", icon: ShieldCheck },
 ];
 
