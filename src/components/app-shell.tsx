@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, Search, ShieldCheck, SunMedium } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, Moon, Search, ShieldCheck, Sun, SunMedium } from "lucide-react";
 
 const navigation = [
   { href: "/", label: "Portfolio", icon: LayoutDashboard },
@@ -17,8 +17,33 @@ const navigation = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => {
+    setDarkMode(document.documentElement.dataset.theme === "dark");
+  }, []);
   useEffect(() => { if (pathname !== "/unlock") void fetch("/api/backups", { cache: "no-store" }); }, []);
-  if (pathname === "/unlock") return children;
+
+  function toggleTheme() {
+    const nextTheme = darkMode ? "light" : "dark";
+    document.documentElement.dataset.theme = nextTheme;
+    document.documentElement.style.colorScheme = nextTheme;
+    localStorage.setItem("solar-studio-theme", nextTheme);
+    setDarkMode(!darkMode);
+  }
+
+  const themeToggle = (
+    <button
+      type="button"
+      className="theme-toggle"
+      onClick={toggleTheme}
+      aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {darkMode ? <Sun size={17} /> : <Moon size={17} />}
+    </button>
+  );
+
+  if (pathname === "/unlock") return <>{children}<div className="unlock-theme-toggle">{themeToggle}</div></>;
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -42,6 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="topbar">
           <div className="search"><Search size={17} /><span>Search projects, products, suppliers…</span><kbd>⌘ K</kbd></div>
           <div className="environment"><span />Local workspace</div>
+          {themeToggle}
           <div className="avatar">DS</div>
         </header>
         <div className="page-wrap">{children}</div>
