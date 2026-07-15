@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
   const unlockUrl = request.nextUrl.clone();
   unlockUrl.pathname = "/unlock";
   unlockUrl.search = "";
+  unlockUrl.searchParams.set("next", path);
   return NextResponse.redirect(unlockUrl);
 }
 

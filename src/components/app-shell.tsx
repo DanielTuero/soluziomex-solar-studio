@@ -51,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link href="/" className="brand">
+        <Link href="/" className="brand" prefetch={false}>
           <span className="brand-mark"><SunMedium size={22} /></span>
           <span><strong>Solar Studio</strong><small>by Soluziomex</small></span>
         </Link>
@@ -59,7 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="nav-label">Workspace</span>
           {navigation.filter(item=>permissions?.includes(item.section)).map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return <Link key={href} href={href} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</Link>;
+            return <Link key={href} href={href} prefetch={false} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</Link>;
           })}
         </nav>
         <div className="sidebar-foot">

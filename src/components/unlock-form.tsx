@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Database, LockKeyhole, SunMedium } from "lucide-react";
 
-export function UnlockForm() {
+export function UnlockForm({nextPath="/"}:{nextPath?:string}) {
   const [username, setUsername] = useState("admin");
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState("");
@@ -11,7 +11,7 @@ export function UnlockForm() {
 
   useEffect(() => {
     fetch("/api/security/status", { cache: "no-store" }).then((response) => response.json()).then((state) => {
-      if (!state.enabled || state.authenticated) window.location.replace("/");
+      if (!state.enabled || state.authenticated) window.location.replace(nextPath);
     }).catch(() => setError("The local database is still starting. Try again in a moment."));
   }, []);
 
@@ -27,7 +27,7 @@ export function UnlockForm() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to unlock Solar Studio.");
-      window.location.replace("/");
+      window.location.replace(nextPath);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Unable to unlock Solar Studio.");
       setPasscode("");
