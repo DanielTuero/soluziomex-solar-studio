@@ -5,6 +5,8 @@ $appUrl = "http://localhost:3100"
 $databasePath = Join-Path $projectRoot "data\solar-studio.db"
 $standardLog = Join-Path $projectRoot ".solar-studio-launch.log"
 $errorLog = Join-Path $projectRoot ".solar-studio-launch.err.log"
+$buildIdPath = Join-Path $projectRoot ".next\BUILD_ID"
+$buildVersionPath = Join-Path $projectRoot ".next\solar-studio-commit"
 
 function Test-SolarStudio {
   try {
@@ -13,6 +15,20 @@ function Test-SolarStudio {
   } catch {
     return $false
   }
+}
+
+function Stop-SolarStudio {
+  $listener = Get-NetTCPConnection -LocalPort 3100 -State Listen -ErrorAction SilentlyContinue |
+    Where-Object { $_.LocalAddress -eq "::" } |
+    Select-Object -First 1
+  if (-not $listener) { return }
+
+  $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($listener.OwningProcess)"
+  if ($process.Name -ne "node.exe" -or $process.CommandLine -notlike "*$projectRoot*next*start*3100*") {
+    throw "Port 3100 is being used by another application. Solar Studio will not stop it."
+  }
+  Stop-Process -Id $listener.OwningProcess -Force
+  Start-Sleep -Milliseconds 750
 }
 
 try {
@@ -30,9 +46,16 @@ try {
   & npm.cmd run db:setup
   if ($LASTEXITCODE -ne 0) { throw "The Solar Studio database could not be prepared." }
 
-  if (-not (Test-Path -LiteralPath (Join-Path $projectRoot ".next\BUILD_ID"))) {
+  $currentCommit = & git rev-parse HEAD 2>$null | Select-Object -First 1
+  $currentCommit = if ($currentCommit) { $currentCommit.Trim() } else { "" }
+  $builtCommit = if (Test-Path -LiteralPath $buildVersionPath) { (Get-Content -LiteralPath $buildVersionPath -Raw).Trim() } else { "" }
+  $needsBuild = -not (Test-Path -LiteralPath $buildIdPath) -or -not $currentCommit -or $builtCommit -ne $currentCommit
+
+  if ($needsBuild) {
+    if (Test-SolarStudio) { Stop-SolarStudio }
     & npm.cmd run build
     if ($LASTEXITCODE -ne 0) { throw "Solar Studio could not prepare its local application files." }
+    if ($currentCommit) { Set-Content -LiteralPath $buildVersionPath -Value $currentCommit -NoNewline }
   }
 
   if (-not (Test-SolarStudio)) {

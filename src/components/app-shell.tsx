@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, LogOut, Moon, Search, ShieldCheck, Sun, SunMedium } from "lucide-react";
@@ -51,15 +50,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link href="/" className="brand" prefetch={false}>
+        <a href="/" className="brand">
           <span className="brand-mark"><SunMedium size={22} /></span>
           <span><strong>Solar Studio</strong><small>by Soluziomex</small></span>
-        </Link>
+        </a>
         <nav className="side-nav" aria-label="Main navigation">
           <span className="nav-label">Workspace</span>
           {navigation.filter(item=>permissions?.includes(item.section)).map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return <Link key={href} href={href} prefetch={false} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</Link>;
+            return <a key={href} href={href} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</a>;
           })}
         </nav>
         <div className="sidebar-foot">
@@ -73,7 +72,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="environment"><span />Local workspace</div>
           {themeToggle}
           <div className="avatar" title={displayName}>{displayName.split(/\s+/).map(part=>part[0]).join("").slice(0,2).toUpperCase()}</div>
-          {securityEnabled&&<Link href="/api/security/launch" className="sign-out-button" title="Sign out" aria-label="Sign out"><LogOut size={15}/></Link>}
+          {securityEnabled&&<a href="/api/security/launch" className="sign-out-button" title="Sign out" aria-label="Sign out"><LogOut size={15}/></a>}
         </header>
         <div className="page-wrap">{children}</div>
       </main>

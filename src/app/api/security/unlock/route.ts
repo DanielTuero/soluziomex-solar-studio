@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const token = createSessionToken(state.session_secret, authenticatedUser.id);
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 24 * 30,
     });

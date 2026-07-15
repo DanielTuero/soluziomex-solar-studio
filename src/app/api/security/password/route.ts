@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest) {
     await query("INSERT INTO audit_logs (entity_type, entity_id, entity_name, action, details) VALUES ('Security', $1, $2, 'Updated', 'Account password changed')", [stored.id, stored.display_name]);
     const token = createSessionToken(secret, stored.id);
     const response = NextResponse.json({ changed: true, security_token: token });
-    response.cookies.set(SESSION_COOKIE, token, { httpOnly:true, sameSite:"strict", path:"/", maxAge:60*60*24*30 });
+    response.cookies.set(SESSION_COOKIE, token, { httpOnly:true, sameSite:"lax", path:"/", maxAge:60*60*24*30 });
     response.cookies.set(SECURITY_SESSION_COOKIE, token, { httpOnly:true, sameSite:"strict", path:"/", maxAge:60*15 });
     return response;
   } catch {
