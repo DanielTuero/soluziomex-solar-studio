@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { firstAllowedPath, getAuthenticatedUser, getSecurityState, hasSectionAccess, type MenuSection, SECURITY_SESSION_COOKIE, SESSION_COOKIE } from "@/lib/security";
+import { firstAllowedPath, getAuthenticatedUser, getSecurityState, hasSectionAccess, type MenuSection, SECURITY_CONFIRMATION_TTL_MS, SECURITY_REQUEST_HEADER, SECURITY_SESSION_COOKIE, SESSION_COOKIE } from "@/lib/security";
 
 const OPEN_PATHS = new Set(["/unlock", "/api/security/status", "/api/security/unlock", "/api/security/launch"]);
 
@@ -29,10 +29,11 @@ export async function proxy(request: NextRequest) {
 
   try {
     const state = await getSecurityState();
-    const user = await getAuthenticatedUser(request.cookies.get(SESSION_COOKIE)?.value, state);
+    const securityToken = request.headers.get(SECURITY_REQUEST_HEADER) ?? request.cookies.get(SECURITY_SESSION_COOKIE)?.value;
+    const confirmedUser = requiresSecurityConfirmation(path) ? await getAuthenticatedUser(securityToken, state, SECURITY_CONFIRMATION_TTL_MS) : null;
+    const user = await getAuthenticatedUser(request.cookies.get(SESSION_COOKIE)?.value, state) ?? confirmedUser;
     if (user) {
       if (requiresSecurityConfirmation(path)) {
-        const confirmedUser = await getAuthenticatedUser(request.cookies.get(SECURITY_SESSION_COOKIE)?.value, state);
         if (!confirmedUser || confirmedUser.id !== user.id) {
           if (path.startsWith("/api/")) return NextResponse.json({ error: "Confirm your password before changing security settings." }, { status: 401 });
           const confirmUrl = request.nextUrl.clone();

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { getAuthenticatedUserFromToken, getSecurityState, isPasscodeEnabled, SESSION_COOKIE } from "@/lib/security";
+import { getSecurityState, isPasscodeEnabled } from "@/lib/security";
+import { authenticateSecurityRequest } from "@/lib/user-admin";
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await getAuthenticatedUserFromToken(request.cookies.get(SESSION_COOKIE)?.value);
+    const auth = await authenticateSecurityRequest(request);
     if (!auth.user || !Boolean(auth.user.is_admin)) return NextResponse.json({ error: "Only an administrator can change launch protection." }, { status: 403 });
     const body = await request.json();
     if (typeof body.enabled !== "boolean") {

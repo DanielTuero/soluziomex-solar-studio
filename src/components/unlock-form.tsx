@@ -22,6 +22,7 @@ export function UnlockForm({nextPath="/"}:{nextPath?:string}) {
     try {
       const response = await fetch("/api/security/unlock", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, passcode, security_scope: nextPath.startsWith("/settings") }),
       });

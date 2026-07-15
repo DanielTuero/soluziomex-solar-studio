@@ -1,7 +1,7 @@
 import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeAll, describe, expect, test } from "vitest";
+import { beforeAll, describe, expect, test, vi } from "vitest";
 
 describe("local user security", () => {
   let security: typeof import("./security");
@@ -33,5 +33,14 @@ describe("local user security", () => {
     expect(user?.username).toBe("maria");
     expect(user?.permissions).toEqual(["projects"]);
     expect(await security.getAuthenticatedUser(`${token}x`, state)).toBeNull();
+  });
+
+  test("expires short-lived security confirmation tokens", async () => {
+    const issuedAt = Date.now();
+    vi.spyOn(Date, "now").mockReturnValue(issuedAt);
+    const token = security.createSessionToken(state.session_secret, "user-1");
+    vi.spyOn(Date, "now").mockReturnValue(issuedAt + security.SECURITY_CONFIRMATION_TTL_MS + 1);
+    expect(await security.getAuthenticatedUser(token, state, security.SECURITY_CONFIRMATION_TTL_MS)).toBeNull();
+    vi.restoreAllMocks();
   });
 });

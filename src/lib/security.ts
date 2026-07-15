@@ -3,6 +3,8 @@ import { query } from "./db";
 
 export const SESSION_COOKIE = "solar_studio_session";
 export const SECURITY_SESSION_COOKIE = "solar_studio_security_session";
+export const SECURITY_REQUEST_HEADER = "x-solar-studio-security";
+export const SECURITY_CONFIRMATION_TTL_MS = 15 * 60 * 1000;
 const LEGACY_SESSION_MESSAGE = "solar-studio-unlocked";
 const SESSION_VERSION = "v1";
 
@@ -66,7 +68,7 @@ export function createSessionToken(secret: string, userId: string) {
   return `${SESSION_VERSION}.${payload}.${signature(`${SESSION_VERSION}.${payload}`, secret)}`;
 }
 
-function sessionUserId(token: string | undefined, secret: string) {
+function sessionUserId(token: string | undefined, secret: string, maxAgeMs?: number) {
   if (!token) return null;
   const [version, payload, suppliedSignature] = token.split(".");
   if (version !== SESSION_VERSION || !payload || !suppliedSignature) return null;
@@ -76,6 +78,7 @@ function sessionUserId(token: string | undefined, secret: string) {
   try {
     const decoded = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {userId?:unknown;issuedAt?:unknown};
     if (typeof decoded.userId !== "string" || typeof decoded.issuedAt !== "number") return null;
+    if (maxAgeMs !== undefined && (decoded.issuedAt > Date.now() || Date.now() - decoded.issuedAt > maxAgeMs)) return null;
     return decoded.userId;
   } catch {
     return null;
@@ -118,7 +121,7 @@ function publicUser(user: AppUser, permissions: MenuSection[]): SessionUser {
   return { ...safe, permissions: Boolean(user.is_admin) ? [...MENU_SECTIONS] : permissions };
 }
 
-export async function getAuthenticatedUser(token: string | undefined, state: SecurityState): Promise<SessionUser | null> {
+export async function getAuthenticatedUser(token: string | undefined, state: SecurityState, maxAgeMs?: number): Promise<SessionUser | null> {
   if (!isPasscodeEnabled(state)) {
     const admin = await getUserByUsername("admin");
     return admin ? publicUser(admin, [...MENU_SECTIONS]) : {
@@ -126,17 +129,17 @@ export async function getAuthenticatedUser(token: string | undefined, state: Sec
       last_login_at: null, created_at: new Date(0).toISOString(), permissions: [...MENU_SECTIONS],
     };
   }
-  let userId = sessionUserId(token, state.session_secret);
-  if (!userId && isLegacySessionValid(token, state.session_secret)) userId = "admin";
+  let userId = sessionUserId(token, state.session_secret, maxAgeMs);
+  if (!userId && maxAgeMs === undefined && isLegacySessionValid(token, state.session_secret)) userId = "admin";
   if (!userId) return null;
   const user = await getUserById(userId);
   if (!user || !Boolean(user.is_active)) return null;
   return publicUser(user, await getUserPermissions(user.id));
 }
 
-export async function getAuthenticatedUserFromToken(token: string | undefined) {
+export async function getAuthenticatedUserFromToken(token: string | undefined, maxAgeMs?: number) {
   const state = await getSecurityState();
-  return { state, user: await getAuthenticatedUser(token, state) };
+  return { state, user: await getAuthenticatedUser(token, state, maxAgeMs) };
 }
 
 export function hasSectionAccess(user: SessionUser, sections: MenuSection[]) {
