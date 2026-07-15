@@ -15,8 +15,10 @@ const stages = ["Prospect", "Design", "Procurement", "Installation", "Operating"
 
 export function PortfolioDashboard() {
   const [projects, setProjects] = useState<PortfolioProject[]>([]);
+  const [currentUserName, setCurrentUserName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/projects").then(async (response) => {
@@ -24,6 +26,12 @@ export function PortfolioDashboard() {
       if (!response.ok) throw new Error(data.error);
       setProjects(data.projects);
     }).catch((err) => setError(err.message)).finally(() => setLoading(false));
+
+    fetch("/api/security/status", { cache: "no-store" }).then(async (response) => {
+      const status = await response.json();
+      if (!response.ok) throw new Error(status.error);
+      setCurrentUserName(status.user?.display_name || status.user?.username || "User");
+    }).catch(() => setCurrentUserName("User")).finally(() => setUserLoading(false));
   }, []);
 
   const totals = useMemo(() => {
@@ -40,10 +48,10 @@ export function PortfolioDashboard() {
     platform: totals.annualRevenue * Math.pow(1.03, index) * .82,
   })), [totals.annualRevenue]);
 
-  if (loading) return <div className="loading"><div><div className="spinner" />Loading your solar portfolio…</div></div>;
+  if (loading || userLoading) return <div className="loading"><div><div className="spinner" />Loading your solar portfolio…</div></div>;
   return <>
     <div className="page-heading">
-      <div><p className="eyebrow">Portfolio command center</p><h1>Good afternoon, Admin.</h1><p>Live economics across your solar development pipeline.</p></div>
+      <div><p className="eyebrow">Portfolio command center</p><h1>Good afternoon, {currentUserName}.</h1><p>Live economics across your solar development pipeline.</p></div>
       <Link className="button primary" href="/projects">Open project pipeline <ArrowRight size={15} /></Link>
     </div>
     {error && <div className="error-banner">{error}</div>}
