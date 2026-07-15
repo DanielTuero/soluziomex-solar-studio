@@ -128,6 +128,7 @@ export type RevenueModel = {
   previous_cfe_monthly_bill: number;
   residual_cfe_monthly_bill: number;
   monthly_customer_fee: number;
+  monthly_installer_payment: number;
   contract_years: number;
   installer_share_pct: number;
   maintenance_reserve_pct: number;

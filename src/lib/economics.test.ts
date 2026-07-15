@@ -10,7 +10,7 @@ const project = {
 
 const revenue = {
   project_id: "p", previous_cfe_monthly_bill: 0, residual_cfe_monthly_bill: 0, monthly_customer_fee: 20000, contract_years: 15, installer_share_pct: 10,
-  maintenance_reserve_pct: 8, platform_share_pct: 82, annual_fee_escalation_pct: 3, discount_rate_pct: 10,
+  maintenance_reserve_pct: 8, platform_share_pct: 82, monthly_installer_payment: 2000, annual_fee_escalation_pct: 3, discount_rate_pct: 10,
 } satisfies RevenueModel;
 
 describe("calculateEconomics", () => {
@@ -20,9 +20,9 @@ describe("calculateEconomics", () => {
     expect(result.yearOneBillSavings).toBe(480000);
     expect(result.yearOneRevenue).toBe(240000);
     expect(result.installerYearOne).toBe(24000);
-    expect(result.maintenanceYearOne).toBe(19200);
-    expect(result.platformYearOne).toBe(196800);
-    expect(result.projectPaybackYears).toBe(1.5);
+    expect(result.maintenanceYearOne).toBe(0);
+    expect(result.platformYearOne).toBe(216000);
+    expect(result.projectPaybackYears).toBe(1.4);
     expect(result.series).toHaveLength(15);
   });
 
@@ -40,13 +40,22 @@ describe("calculateEconomics", () => {
     expect(result.yearOneRevenue).toBe(360000);
   });
 
-  it("computes Soluziomex break-even from its allocated share rather than total customer fees", () => {
+  it("uses installation at T0 and maintenance as a recurring monthly charge", () => {
     const items = [{ id:"i", project_id:"p", product_id:"x", product_name:"Panel", product_model:"X", product_category:"Panels", product_sku:"PX", quantity:100, unit_price:2000, supplier:"", expected_delivery:null, status:"Planned" as const, notes:"" }];
-    const costs = [{ id:"c", project_id:"p", cost_category:"Installation" as const, cost_type:"Labor", label:"Labor", amount:100000, notes:"" }];
-    const fullShare = calculateEconomics(project, items, costs, { ...revenue, installer_share_pct:0, maintenance_reserve_pct:0, platform_share_pct:100 });
-    const halfShare = calculateEconomics(project, items, costs, { ...revenue, installer_share_pct:50, maintenance_reserve_pct:0, platform_share_pct:50 });
-    expect(fullShare.platformYearOne).toBe(fullShare.yearOneRevenue);
-    expect(halfShare.platformYearOne).toBe(halfShare.yearOneRevenue * .5);
-    expect(halfShare.projectPaybackYears!).toBeGreaterThan(fullShare.projectPaybackYears!);
+    const costs = [{ id:"c", project_id:"p", cost_category:"Installation" as const, cost_type:"Labor", label:"Labor", amount:100000, notes:"" }, { id:"m", project_id:"p", cost_category:"Maintenance" as const, cost_type:"Care", label:"Care", amount:1000, notes:"" }];
+    const result = calculateEconomics(project, items, costs, revenue);
+    expect(result.totalProjectCost).toBe(300000);
+    expect(result.monthlyMaintenanceCost).toBe(1000);
+    expect(result.maintenanceYearOne).toBe(12000);
+    expect(result.platformYearOne).toBe(204000);
+    expect(result.series[0].cumulativePlatform).toBe(-96000);
+  });
+
+  it("derives stakeholder shares from amounts and ignores legacy percentage fields", () => {
+    const legacySharesChanged = calculateEconomics(project, [], [], { ...revenue, installer_share_pct:50, maintenance_reserve_pct:50, platform_share_pct:0 });
+    const originalShares = calculateEconomics(project, [], [], revenue);
+    expect(legacySharesChanged.platformYearOne).toBe(originalShares.platformYearOne);
+    expect(legacySharesChanged.installerYearOne).toBe(24000);
+    expect(legacySharesChanged.platformYearOne).toBe(legacySharesChanged.yearOneRevenue-legacySharesChanged.installerYearOne);
   });
 });

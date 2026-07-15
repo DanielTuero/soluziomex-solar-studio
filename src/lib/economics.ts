@@ -2,8 +2,12 @@ import type { Project, ProjectCost, ProjectItem, RevenueModel } from "./types";
 
 export type Economics = {
   equipmentCost: number;
+  installationServicesCost: number;
   softCosts: number;
   totalProjectCost: number;
+  monthlyMaintenanceCost: number;
+  monthlyInstallerPayment: number;
+  monthlyPlatformCash: number;
   yearOneGeneration: number;
   yearOneBillSavings: number;
   yearOneRevenue: number;
@@ -41,8 +45,14 @@ export function calculateEconomics(
   revenue: RevenueModel,
 ): Economics {
   const equipmentCost = items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_price), 0);
-  const softCosts = costs.reduce((sum, cost) => sum + Number(cost.amount), 0);
-  const totalProjectCost = equipmentCost + softCosts;
+  const installationServicesCost = costs
+    .filter((cost) => (cost.cost_category || "Installation") === "Installation")
+    .reduce((sum, cost) => sum + Number(cost.amount), 0);
+  const monthlyMaintenanceCost = costs
+    .filter((cost) => cost.cost_category === "Maintenance")
+    .reduce((sum, cost) => sum + Number(cost.amount), 0);
+  const softCosts = installationServicesCost;
+  const totalProjectCost = equipmentCost + installationServicesCost;
   const yearOneGeneration = Number(project.capacity_kw) * Number(project.specific_yield_kwh_kw);
   const usefulEnergy = Math.min(yearOneGeneration, Number(project.annual_usage_kwh));
   const monthlyPreviousCfeBill = Number(revenue.previous_cfe_monthly_bill || 0);
@@ -57,9 +67,11 @@ export function calculateEconomics(
   const monthlyTotalCustomerOutlay = monthlyResidualCfeBill + Number(revenue.monthly_customer_fee);
   const monthlyCustomerSavings = hasCfeBillBreakdown ? monthlyPreviousCfeBill - monthlyTotalCustomerOutlay : 0;
   const customerDiscountPct = monthlyPreviousCfeBill > 0 ? monthlyCustomerSavings / monthlyPreviousCfeBill * 100 : 0;
-  const installerYearOne = yearOneRevenue * (Number(revenue.installer_share_pct) / 100);
-  const maintenanceYearOne = yearOneRevenue * (Number(revenue.maintenance_reserve_pct) / 100);
-  const platformYearOne = yearOneRevenue * (Number(revenue.platform_share_pct) / 100);
+  const monthlyInstallerPayment = Number(revenue.monthly_installer_payment || 0);
+  const monthlyPlatformCash = Number(revenue.monthly_customer_fee) - monthlyInstallerPayment - monthlyMaintenanceCost;
+  const installerYearOne = monthlyInstallerPayment * 12;
+  const maintenanceYearOne = monthlyMaintenanceCost * 12;
+  const platformYearOne = yearOneRevenue - installerYearOne - maintenanceYearOne;
   const series: Economics["series"] = [];
   let cumulativePlatform = -totalProjectCost;
   let contractRevenue = 0;
@@ -75,9 +87,9 @@ export function calculateEconomics(
       ? Math.max(0, monthlyPreviousCfeBill - monthlyResidualCfeBill) * 12 * Math.pow(1 + Number(project.utility_escalation_pct) / 100, year - 1)
       : generation * rate;
     const customerFee = yearOneRevenue * Math.pow(1 + Number(revenue.annual_fee_escalation_pct) / 100, year - 1);
-    const installer = customerFee * (Number(revenue.installer_share_pct) / 100);
-    const maintenance = customerFee * (Number(revenue.maintenance_reserve_pct) / 100);
-    const platform = customerFee * (Number(revenue.platform_share_pct) / 100);
+    const installer = installerYearOne;
+    const maintenance = maintenanceYearOne;
+    const platform = customerFee - installer - maintenance;
     const customerSavings = billSavings - customerFee;
     const cumulativeBeforeYear = cumulativePlatform;
     cumulativePlatform += platform;
@@ -95,8 +107,12 @@ export function calculateEconomics(
   const roiPct = totalProjectCost > 0 ? ((contractPlatformCash - totalProjectCost) / totalProjectCost) * 100 : 0;
   return {
     equipmentCost,
+    installationServicesCost,
     softCosts,
     totalProjectCost,
+    monthlyMaintenanceCost,
+    monthlyInstallerPayment,
+    monthlyPlatformCash,
     yearOneGeneration,
     yearOneBillSavings,
     yearOneRevenue,

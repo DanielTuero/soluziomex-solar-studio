@@ -5,7 +5,7 @@ export async function GET() {
     const result = await query(`
       SELECT p.*,
         COALESCE((SELECT sum(i.quantity * i.unit_price) FROM project_items i WHERE i.project_id = p.id), 0)::float8 AS equipment_cost,
-        COALESCE((SELECT sum(c.amount) FROM project_costs c WHERE c.project_id = p.id), 0)::float8 AS soft_costs,
+        COALESCE((SELECT sum(c.amount) FROM project_costs c WHERE c.project_id = p.id AND COALESCE(c.cost_category, 'Installation') = 'Installation'), 0)::float8 AS soft_costs,
         COALESCE(r.monthly_customer_fee, 0)::float8 AS monthly_customer_fee,
         COALESCE(r.contract_years, 15) AS contract_years,
         (SELECT count(*)::int FROM project_items i WHERE i.project_id = p.id) AS item_count
@@ -46,8 +46,8 @@ export async function POST(request: Request) {
     );
     const project = result.rows[0];
     await query(
-      `INSERT INTO revenue_models (project_id, monthly_customer_fee, contract_years, installer_share_pct, maintenance_reserve_pct, platform_share_pct)
-       VALUES ($1,$2,15,10,8,82)`,
+      `INSERT INTO revenue_models (project_id, monthly_customer_fee, monthly_installer_payment, contract_years)
+       VALUES ($1,$2,0,15)`,
       [project.id, Number(body.monthly_customer_fee || 0)],
     );
     return Response.json({ project }, { status: 201 });
