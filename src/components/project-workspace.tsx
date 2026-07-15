@@ -86,13 +86,20 @@ function CostsByCategory({data,e,add,remove,move,edit}:{data:WorkspaceData;e:Ret
       <CostBucket title="Installation" description="Materials, engineering, permits, freight and construction" icon={Banknote} costs={installation} total={installationTotal} materialsTotal={e.equipmentCost} moveTarget="Maintenance" remove={remove} move={move} edit={edit}/>
       <CostBucket title="Maintenance" description="Monitoring, cleaning, preventive and corrective care" icon={CalendarClock} costs={maintenance} total={maintenanceTotal} moveTarget="Installation" remove={remove} move={move} edit={edit}/>
     </div>
-    <section className="card cost-total-card"><div className="mini-metrics" style={{gridTemplateColumns:'repeat(3,1fr)'}}><div className="mini-metric"><span>Installation incl. Materials</span><strong>{money(installationTotal,true)}</strong></div><div className="mini-metric"><span>Maintenance</span><strong>{money(maintenanceTotal,true)}</strong></div><div className="mini-metric" style={{background:'#143d2d',color:'white'}}><span style={{color:'#a7c0b4'}}>Total project cost</span><strong>{money(e.totalProjectCost,true)}</strong></div></div></section>
+    <section className="card cost-total-card">
+      <div className="card-header"><div><h2>Project cost statement</h2><p>Installation, maintenance, and fully loaded project cost</p></div><span className="statement-currency">MXN</span></div>
+      <div className="pnl-statement">
+        <div className="pnl-row"><span>Installation incl. Materials</span><strong>{money(installationTotal)}</strong></div>
+        <div className="pnl-row"><span>Maintenance</span><strong>{money(maintenanceTotal)}</strong></div>
+        <div className="pnl-row total"><span>Total project cost</span><strong>{money(e.totalProjectCost)}</strong></div>
+      </div>
+    </section>
   </>;
 }
 
 function CostBucket({title,description,icon:Icon,costs,total,materialsTotal,moveTarget,remove,move,edit}:{title:string;description:string;icon:React.ElementType;costs:ProjectCost[];total:number;materialsTotal?:number;moveTarget:'Installation'|'Maintenance';remove:(id:string)=>void;move:(id:string,category:'Installation'|'Maintenance')=>void;edit:(cost:ProjectCost)=>void}){
   const hasMaterials=materialsTotal!==undefined;
-  return <section className="card cost-bucket"><div className="card-header"><div className="cost-bucket-title"><span className="metric-icon"><Icon size={16}/></span><div><h2>{title}</h2><p>{description}</p></div></div><strong>{money(total,true)}</strong></div>
+  return <section className="card cost-bucket"><div className="card-header"><div className="cost-bucket-title"><span className="metric-icon"><Icon size={16}/></span><div><h2>{title}</h2><p>{description}</p></div></div><strong>{money(total)}</strong></div>
     {(hasMaterials||costs.length)?<div className="table-wrap"><table className="data-table cost-table"><thead><tr><th>Cost & note</th><th>Amount</th><th></th></tr></thead><tbody>{hasMaterials&&<tr className="materials-cost-row"><td><strong>Materials</strong><span className="cost-note">Automatically tallied from Products & sourcing</span></td><td><strong>{money(materialsTotal)}</strong></td><td></td></tr>}{costs.map(cost=><tr key={cost.id}><td><strong>{cost.label}</strong>{cost.notes&&<span className="cost-note">{cost.notes}</span>}</td><td><strong>{money(Number(cost.amount))}</strong></td><td><div className="cost-row-actions"><button className="button ghost small" onClick={()=>edit(cost)} aria-label={`Edit ${cost.label}`} title="Edit cost"><Pencil size={13}/></button><button className="button ghost small move-cost-button" onClick={()=>move(cost.id,moveTarget)} aria-label={`Move ${cost.label} to ${moveTarget}`} title={`Move to ${moveTarget}`}>{moveTarget==='Maintenance'?<ArrowRight size={14}/>:<ArrowLeft size={14}/>}</button><button className="button ghost small" onClick={()=>remove(cost.id)} aria-label={`Remove ${cost.label}`}><Trash2 size={14}/></button></div></td></tr>)}</tbody><tfoot><tr><td><strong>{title} subtotal</strong></td><td><strong>{money(total)}</strong></td><td></td></tr></tfoot></table></div>:<Empty icon={Icon} title={`No ${title.toLowerCase()} costs`} text={`Add the first ${title.toLowerCase()} cost to this project.`}/>}</section>;
 }
 
