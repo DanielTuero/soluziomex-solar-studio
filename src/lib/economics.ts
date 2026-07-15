@@ -8,6 +8,11 @@ export type Economics = {
   yearOneBillSavings: number;
   yearOneRevenue: number;
   customerNetSavings: number;
+  monthlyPreviousCfeBill: number;
+  monthlyResidualCfeBill: number;
+  monthlyTotalCustomerOutlay: number;
+  monthlyCustomerSavings: number;
+  customerDiscountPct: number;
   installerYearOne: number;
   maintenanceYearOne: number;
   platformYearOne: number;
@@ -40,9 +45,18 @@ export function calculateEconomics(
   const totalProjectCost = equipmentCost + softCosts;
   const yearOneGeneration = Number(project.capacity_kw) * Number(project.specific_yield_kwh_kw);
   const usefulEnergy = Math.min(yearOneGeneration, Number(project.annual_usage_kwh));
-  const yearOneBillSavings = usefulEnergy * Number(project.electricity_rate);
+  const monthlyPreviousCfeBill = Number(revenue.previous_cfe_monthly_bill || 0);
+  const monthlyResidualCfeBill = Number(revenue.residual_cfe_monthly_bill || 0);
+  const hasCfeBillBreakdown = monthlyPreviousCfeBill > 0;
+  const modeledYearOneBillSavings = usefulEnergy * Number(project.electricity_rate);
+  const yearOneBillSavings = hasCfeBillBreakdown
+    ? Math.max(0, monthlyPreviousCfeBill - monthlyResidualCfeBill) * 12
+    : modeledYearOneBillSavings;
   const yearOneRevenue = Number(revenue.monthly_customer_fee) * 12;
   const customerNetSavings = yearOneBillSavings - yearOneRevenue;
+  const monthlyTotalCustomerOutlay = monthlyResidualCfeBill + Number(revenue.monthly_customer_fee);
+  const monthlyCustomerSavings = hasCfeBillBreakdown ? monthlyPreviousCfeBill - monthlyTotalCustomerOutlay : 0;
+  const customerDiscountPct = monthlyPreviousCfeBill > 0 ? monthlyCustomerSavings / monthlyPreviousCfeBill * 100 : 0;
   const installerYearOne = yearOneRevenue * (Number(revenue.installer_share_pct) / 100);
   const maintenanceYearOne = yearOneRevenue * (Number(revenue.maintenance_reserve_pct) / 100);
   const platformYearOne = yearOneRevenue * (Number(revenue.platform_share_pct) / 100);
@@ -57,7 +71,9 @@ export function calculateEconomics(
   for (let year = 1; year <= Number(revenue.contract_years); year += 1) {
     const generation = usefulEnergy * Math.pow(1 - Number(project.degradation_pct) / 100, year - 1);
     const rate = Number(project.electricity_rate) * Math.pow(1 + Number(project.utility_escalation_pct) / 100, year - 1);
-    const billSavings = generation * rate;
+    const billSavings = hasCfeBillBreakdown
+      ? Math.max(0, monthlyPreviousCfeBill - monthlyResidualCfeBill) * 12 * Math.pow(1 + Number(project.utility_escalation_pct) / 100, year - 1)
+      : generation * rate;
     const customerFee = yearOneRevenue * Math.pow(1 + Number(revenue.annual_fee_escalation_pct) / 100, year - 1);
     const installer = customerFee * (Number(revenue.installer_share_pct) / 100);
     const maintenance = customerFee * (Number(revenue.maintenance_reserve_pct) / 100);
@@ -85,6 +101,11 @@ export function calculateEconomics(
     yearOneBillSavings,
     yearOneRevenue,
     customerNetSavings,
+    monthlyPreviousCfeBill,
+    monthlyResidualCfeBill,
+    monthlyTotalCustomerOutlay,
+    monthlyCustomerSavings,
+    customerDiscountPct,
     installerYearOne,
     maintenanceYearOne,
     platformYearOne,

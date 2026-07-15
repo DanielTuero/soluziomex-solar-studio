@@ -9,7 +9,7 @@ const project = {
 } satisfies Project;
 
 const revenue = {
-  project_id: "p", monthly_customer_fee: 20000, contract_years: 15, installer_share_pct: 10,
+  project_id: "p", previous_cfe_monthly_bill: 0, residual_cfe_monthly_bill: 0, monthly_customer_fee: 20000, contract_years: 15, installer_share_pct: 10,
   maintenance_reserve_pct: 8, platform_share_pct: 82, annual_fee_escalation_pct: 3, discount_rate_pct: 10,
 } satisfies RevenueModel;
 
@@ -24,5 +24,19 @@ describe("calculateEconomics", () => {
     expect(result.platformYearOne).toBe(196800);
     expect(result.projectPaybackYears).toBe(1.5);
     expect(result.series).toHaveLength(15);
+  });
+
+  it("uses the saved CFE bill breakdown for customer savings and discount", () => {
+    const result = calculateEconomics(project, [], [], {
+      ...revenue,
+      previous_cfe_monthly_bill: 50000,
+      residual_cfe_monthly_bill: 5000,
+      monthly_customer_fee: 30000,
+    });
+    expect(result.yearOneBillSavings).toBe(540000);
+    expect(result.monthlyTotalCustomerOutlay).toBe(35000);
+    expect(result.monthlyCustomerSavings).toBe(15000);
+    expect(result.customerDiscountPct).toBe(30);
+    expect(result.yearOneRevenue).toBe(360000);
   });
 });

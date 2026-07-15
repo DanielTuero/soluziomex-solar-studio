@@ -61,6 +61,8 @@ export type ProjectCost = {
 
 export type RevenueModel = {
   project_id: string;
+  previous_cfe_monthly_bill: number;
+  residual_cfe_monthly_bill: number;
   monthly_customer_fee: number;
   contract_years: number;
   installer_share_pct: number;
