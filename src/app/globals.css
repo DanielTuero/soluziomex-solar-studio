@@ -211,6 +211,20 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 36px); line-height: 1.12; }
 .audit-table-wrap { transition:opacity .15s; }.audit-table-wrap.loading-page { opacity:.45;pointer-events:none; }.audit-table { min-width:820px; }.audit-table th:nth-child(1){width:28%;}.audit-table th:nth-child(2){width:14%;}.audit-table th:nth-child(4){width:170px;}.audit-table td { vertical-align:middle; }.audit-table td p { max-width:610px;margin:0;color:var(--muted);font-size:9px;line-height:1.5; }.audit-table time { color:var(--muted);font-size:9px;white-space:nowrap; }.audit-change { display:flex;align-items:center;gap:12px; }.audit-change .audit-dot { flex:0 0 auto;margin:0; }.audit-change > div { min-width:0;display:flex;align-items:center;gap:7px; }.audit-change strong { overflow:hidden;font:700 11px var(--font-display);white-space:nowrap;text-overflow:ellipsis; }.audit-area { padding:5px 8px;border-radius:7px;background:#f2f6f3;color:#527061;font-size:8px;font-weight:750;white-space:nowrap; }.table-pagination { min-height:62px;padding:12px 17px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid var(--line);background:#fafcfb; }.table-pagination > span { color:var(--muted);font-size:9px; }.table-pagination > div { display:flex;align-items:center;gap:5px; }.pagination-button { min-width:31px;height:31px;padding:0 8px;border:1px solid #dce4df;border-radius:8px;cursor:pointer;background:white;color:#5f6e66;font-size:9px;font-weight:800; }.pagination-button:hover:not(:disabled) { border-color:#87a595;color:var(--forest); }.pagination-button.active { border-color:var(--forest);background:var(--forest);color:white; }.pagination-button:disabled { cursor:not-allowed;opacity:.45; }.pagination-button.arrow { display:grid;place-items:center;padding:0; }.pagination-ellipsis { width:20px;text-align:center;color:var(--muted);font-size:10px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.project-link-list { max-height: 360px; }
+.project-link-list .project-link-entry { display: block; padding: 10px 12px; }
+.project-link-check { min-height: 30px; }
+.project-share-fields { display: grid; grid-template-columns: 120px minmax(0,1fr); gap: 10px; margin: 9px 0 2px 24px; padding: 10px; border-radius: 9px; background: var(--surface-soft); }
+.project-share-fields label { display: grid; align-content: start; gap: 5px; cursor: default; color: var(--muted); font-size: 8px; font-weight: 800; }
+.project-share-fields .share-input { display: flex; align-items: center; gap: 5px; }
+.project-share-fields input { width: 100%; min-height: 34px; padding: 0 9px; border: 1px solid var(--line); border-radius: 7px; color: var(--ink); background: var(--card); outline: none; font-size: 9px; }
+.project-share-fields .share-input input { text-align: right; }
+.project-share-fields .share-input b { color: var(--muted); }
+.installer-payment-label b, .installer-payment-label small { display: block; }
+.installer-payment-label b { color: var(--ink); font: 700 10px var(--font-display); }
+.installer-payment-label small { max-width: 250px; margin-top: 3px; color: var(--muted); font-size: 8px; line-height: 1.35; }
+.installer-payment-row.empty { min-height: 54px; }
+
 :root[data-theme="dark"] .topbar { background: rgba(19, 28, 23, .88); }
 :root[data-theme="dark"] .search,
 :root[data-theme="dark"] kbd,
@@ -287,3 +301,4 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 36px); line-height: 1.12; }
 @media (max-width: 900px) { .partner-grid { grid-template-columns:1fr; } }
 @media (max-width: 480px) { .metric-grid,.catalog-grid,.edit-scope-grid { grid-template-columns:1fr; }.filters { width:100%; }.filter-input { min-width:0; flex:1; }.page-heading .button { width:100%; }.product-image { height:190px; }.partner-toolbar { align-items:flex-start;flex-direction:column; }.partner-search { min-width:0;width:100%; }.partner-details { grid-template-columns:1fr; }.partner-details > div { border-right:0; }.quote-row { grid-template-columns:minmax(0,1fr) auto auto; }.quote-row > button { display:none; }.backup-list article { grid-template-columns:38px minmax(0,1fr) auto; }.backup-list article > .button.ghost { display:none; } }
 @media (max-width: 480px) { .backup-heading-actions { width:100%;flex-direction:column; }.backup-list article { grid-template-columns:38px minmax(0,1fr); }.backup-actions { grid-column:1/-1;width:100%; }.backup-actions .button { display:inline-flex!important;flex:1; } }
+@media (max-width: 480px) { .project-share-fields { grid-template-columns:1fr; margin-left:0; } }

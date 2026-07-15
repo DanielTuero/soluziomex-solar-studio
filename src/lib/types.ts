@@ -76,6 +76,16 @@ export type PartnerProject = {
   code: string;
   name: string;
   relationship: PartnerType;
+  installer_share_pct: number;
+  installer_share_terms: string;
+};
+
+export type ProjectInstaller = {
+  id: string;
+  company_name: string;
+  contact_name: string;
+  installer_share_pct: number;
+  installer_share_terms: string;
 };
 
 export type PartnerQuote = {
@@ -100,8 +110,8 @@ export type Partner = {
   website: string;
   address: string;
   products_supplied: string;
-  installer_share_pct: number;
-  installer_share_terms: string;
+  installer_share_pct?: number;
+  installer_share_terms?: string;
   payment_terms: string;
   performance_notes: string;
   status: "Active" | "Inactive";
@@ -144,6 +154,7 @@ export type WorkspaceData = {
   project: Project;
   items: ProjectItem[];
   costs: ProjectCost[];
+  installers: ProjectInstaller[];
   costCatalog: CostCatalogEntry[];
   revenue: RevenueModel;
   products: Product[];

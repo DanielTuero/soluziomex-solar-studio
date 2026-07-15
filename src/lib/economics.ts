@@ -1,4 +1,4 @@
-import type { MaintenanceFrequency, Project, ProjectCost, ProjectItem, RevenueModel } from "./types";
+import type { MaintenanceFrequency, Project, ProjectCost, ProjectInstaller, ProjectItem, RevenueModel } from "./types";
 
 export const maintenanceOccurrences: Record<MaintenanceFrequency, number> = {
   Monthly: 12,
@@ -19,6 +19,7 @@ export type Economics = {
   totalProjectCost: number;
   monthlyMaintenanceCost: number;
   monthlyInstallerPayment: number;
+  installerSharePct: number;
   monthlyPlatformCash: number;
   yearOneGeneration: number;
   yearOneBillSavings: number;
@@ -55,6 +56,7 @@ export function calculateEconomics(
   items: ProjectItem[],
   costs: ProjectCost[],
   revenue: RevenueModel,
+  installers: ProjectInstaller[] = [],
 ): Economics {
   const equipmentCost = items.reduce((sum, item) => sum + Number(item.quantity) * Number(item.unit_price), 0);
   const installationServicesCost = costs
@@ -80,7 +82,8 @@ export function calculateEconomics(
   const monthlyTotalCustomerOutlay = monthlyResidualCfeBill + Number(revenue.monthly_customer_fee);
   const monthlyCustomerSavings = hasCfeBillBreakdown ? monthlyPreviousCfeBill - monthlyTotalCustomerOutlay : 0;
   const customerDiscountPct = monthlyPreviousCfeBill > 0 ? monthlyCustomerSavings / monthlyPreviousCfeBill * 100 : 0;
-  const monthlyInstallerPayment = Number(revenue.monthly_installer_payment || 0);
+  const installerSharePct = installers.reduce((sum, installer) => sum + Number(installer.installer_share_pct || 0), 0);
+  const monthlyInstallerPayment = Number(revenue.monthly_customer_fee) * installerSharePct / 100;
   const monthlyPlatformCash = Number(revenue.monthly_customer_fee) - monthlyInstallerPayment - monthlyMaintenanceCost;
   const installerYearOne = monthlyInstallerPayment * 12;
   const platformYearOne = yearOneRevenue - installerYearOne - maintenanceYearOne;
@@ -99,7 +102,7 @@ export function calculateEconomics(
       ? Math.max(0, monthlyPreviousCfeBill - monthlyResidualCfeBill) * 12 * Math.pow(1 + Number(project.utility_escalation_pct) / 100, year - 1)
       : generation * rate;
     const customerFee = yearOneRevenue * Math.pow(1 + Number(revenue.annual_fee_escalation_pct) / 100, year - 1);
-    const installer = installerYearOne;
+    const installer = customerFee * installerSharePct / 100;
     const maintenance = maintenanceYearOne;
     const platform = customerFee - installer - maintenance;
     const customerSavings = billSavings - customerFee;
@@ -124,6 +127,7 @@ export function calculateEconomics(
     totalProjectCost,
     monthlyMaintenanceCost,
     monthlyInstallerPayment,
+    installerSharePct,
     monthlyPlatformCash,
     yearOneGeneration,
     yearOneBillSavings,
