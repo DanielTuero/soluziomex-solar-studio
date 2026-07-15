@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { Database, LockKeyhole, SunMedium } from "lucide-react";
+import { shouldLeaveUnlockPage } from "@/lib/unlock-navigation";
 
 export function UnlockForm({nextPath="/"}:{nextPath?:string}) {
   const [username, setUsername] = useState("admin");
@@ -11,9 +12,9 @@ export function UnlockForm({nextPath="/"}:{nextPath?:string}) {
 
   useEffect(() => {
     fetch("/api/security/status", { cache: "no-store" }).then((response) => response.json()).then((state) => {
-      if (!state.enabled || state.authenticated) window.location.replace(nextPath);
+      if (shouldLeaveUnlockPage(state, nextPath)) window.location.replace(nextPath);
     }).catch(() => setError("The local database is still starting. Try again in a moment."));
-  }, []);
+  }, [nextPath]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
