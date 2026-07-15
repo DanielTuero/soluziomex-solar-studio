@@ -61,30 +61,36 @@ export async function backupDatabase(destination: string) {
   await sqlite.backup(destination);
 }
 
-export function restoreDatabase(source: string) {
+const restoreTables = ["products", "product_images", "projects", "revenue_models", "project_items", "project_costs", "cost_catalog", "partners", "project_partners", "partner_quotes", "app_security", "audit_logs"];
+
+export function validateDatabaseBackup(source: string) {
   const check = new Database(source, { readonly: true });
   try {
     const result = check.pragma("quick_check") as Array<{ quick_check: string }>;
     if (result[0]?.quick_check !== "ok") throw new Error("The selected backup did not pass its database integrity check.");
-    const required = check.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('projects','products','app_security')").all();
-    if (required.length !== 3) throw new Error("The selected file is not a complete Solar Studio backup.");
+    const available = new Set((check.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{name:string}>).map(row => row.name));
+    const missing = restoreTables.filter(table => !available.has(table));
+    if (missing.length) throw new Error(`This is not a complete Solar Studio backup. Missing data: ${missing.join(", ")}.`);
   } finally {
     check.close();
   }
+}
 
-  const tables = ["products", "product_images", "projects", "revenue_models", "project_items", "project_costs", "cost_catalog", "partners", "project_partners", "partner_quotes", "app_security", "audit_logs"];
+export function restoreDatabase(source: string) {
+  validateDatabaseBackup(source);
+
   const deleteOrder = ["partner_quotes", "project_partners", "partners", "project_items", "project_costs", "revenue_models", "product_images", "cost_catalog", "projects", "products", "app_security", "audit_logs"];
   const escapedSource = source.replace(/'/g, "''");
   sqlite.exec(`ATTACH DATABASE '${escapedSource}' AS restored`);
   try {
     const restoredTables = new Set((sqlite.prepare("SELECT name FROM restored.sqlite_master WHERE type='table'").all() as Array<{name:string}>).map(row => row.name));
-    const missing = tables.filter(table => !restoredTables.has(table));
+    const missing = restoreTables.filter(table => !restoredTables.has(table));
     if (missing.length) throw new Error(`This backup predates required Solar Studio data: ${missing.join(", ")}.`);
 
     sqlite.pragma("foreign_keys = OFF");
     sqlite.exec("BEGIN IMMEDIATE");
     for (const table of deleteOrder) sqlite.exec(`DELETE FROM main.${table}`);
-    for (const table of tables) {
+    for (const table of restoreTables) {
       const mainColumns = (sqlite.prepare(`PRAGMA main.table_info(${table})`).all() as Array<{name:string}>).map(row => row.name);
       const restoredColumns = new Set((sqlite.prepare(`PRAGMA restored.table_info(${table})`).all() as Array<{name:string}>).map(row => row.name));
       const shared = mainColumns.filter(column => restoredColumns.has(column));

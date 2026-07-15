@@ -1,5 +1,22 @@
-import { deleteBackup, restoreBackup } from "@/lib/backups";
+import { deleteBackup, readBackup, restoreBackup } from "@/lib/backups";
 import { dbError, query } from "@/lib/db";
+
+export async function GET(_: Request, { params }: { params: Promise<{ name: string }> }) {
+  try {
+    const { name } = await params;
+    const backup = await readBackup(name);
+    return new Response(new Blob([backup.bytes]), {
+      headers: {
+        "Content-Type": "application/vnd.sqlite3",
+        "Content-Length": String(backup.size),
+        "Content-Disposition": `attachment; filename="${name}"`,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (error) {
+    return dbError(error);
+  }
+}
 
 export async function POST(_: Request, { params }: { params: Promise<{ name: string }> }) {
   try {

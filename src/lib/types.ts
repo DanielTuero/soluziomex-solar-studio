@@ -118,7 +118,7 @@ export type AuditLog = {
 
 export type DatabaseBackup = {
   name: string;
-  kind: "Automatic" | "Manual";
+  kind: "Automatic" | "Manual" | "Imported";
   size: number;
   created_at: string;
 };

@@ -1,6 +1,6 @@
-import { mkdir, readdir, rename, stat, unlink } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, stat, unlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { backupDatabase, dataPath, restoreDatabase } from "./db";
+import { backupDatabase, dataPath, restoreDatabase, validateDatabaseBackup } from "./db";
 import type { DatabaseBackup } from "./types";
 
 const backupDirectory = resolve(dirname(dataPath), "backups");
@@ -10,7 +10,7 @@ function stamp(date = new Date()) {
 }
 
 function validName(name: string) {
-  return /^solar-studio-(?:manual|auto)-[A-Za-z0-9_-]+\.db$/.test(name);
+  return /^solar-studio-(?:manual|auto|imported)-[A-Za-z0-9_-]+\.db$/.test(name);
 }
 
 export async function listBackups(): Promise<DatabaseBackup[]> {
@@ -20,7 +20,7 @@ export async function listBackups(): Promise<DatabaseBackup[]> {
     const details = await stat(resolve(backupDirectory, name));
     return {
       name,
-      kind: name.startsWith("solar-studio-auto-") ? "Automatic" as const : "Manual" as const,
+      kind: name.startsWith("solar-studio-auto-") ? "Automatic" as const : name.startsWith("solar-studio-imported-") ? "Imported" as const : "Manual" as const,
       size: details.size,
       created_at: details.mtime.toISOString(),
     };
@@ -54,6 +54,29 @@ export async function restoreBackup(name: string) {
   await stat(path);
   await createBackup("Manual");
   restoreDatabase(path);
+}
+
+export async function readBackup(name: string) {
+  if (!validName(name)) throw new Error("Invalid backup name.");
+  const path = resolve(backupDirectory, name);
+  const [bytes, details] = await Promise.all([readFile(path), stat(path)]);
+  return { bytes, size: details.size };
+}
+
+export async function importBackup(bytes: Uint8Array) {
+  await mkdir(backupDirectory, { recursive: true });
+  const name = `solar-studio-imported-${stamp()}.db`;
+  const destination = resolve(backupDirectory, name);
+  const temporary = `${destination}.tmp`;
+  try {
+    await writeFile(temporary, bytes);
+    validateDatabaseBackup(temporary);
+    await rename(temporary, destination);
+  } catch (error) {
+    await unlink(temporary).catch(() => undefined);
+    throw error;
+  }
+  return (await listBackups()).find(backup => backup.name === name)!;
 }
 
 export async function deleteBackup(name: string) {
