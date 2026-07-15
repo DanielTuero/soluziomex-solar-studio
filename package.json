@@ -6,6 +6,8 @@
     "dev": "next dev -p 3100",
     "build": "next build",
     "start": "next start -p 3100",
+    "desktop": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/launch-solar-studio.ps1 -OpenApp",
+    "desktop:install": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/install-solar-studio.ps1",
     "db:setup": "node --env-file-if-exists=.env.local scripts/db-setup.mjs",
     "security:set-passcode": "node scripts/set-passcode.mjs",
     "test": "vitest run"
