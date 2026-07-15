@@ -5,8 +5,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const { id } = await params;
     const body = await request.json();
     const allowed = ["Planned", "Quoted", "Ordered", "In transit", "Delivered", "Installed"];
-    if (!allowed.includes(body.status)) return Response.json({ error: "Invalid sourcing status" }, { status: 400 });
-    const result = await query("UPDATE project_items SET status=$2 WHERE id=$1 RETURNING *", [id, body.status]);
+    const current = await query("SELECT * FROM project_items WHERE id=$1", [id]);
+    if (!current.rows[0]) return Response.json({ error: "Sourcing line not found" }, { status: 404 });
+    const existing = current.rows[0];
+    const status = body.status ?? existing.status;
+    const quantity = body.quantity === undefined ? Number(existing.quantity) : Number(body.quantity);
+    const unitPrice = body.unit_price === undefined ? Number(existing.unit_price) : Number(body.unit_price);
+    if (!allowed.includes(status)) return Response.json({ error: "Invalid sourcing status" }, { status: 400 });
+    if (!Number.isFinite(quantity) || quantity <= 0) return Response.json({ error: "Quantity must be greater than zero" }, { status: 400 });
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) return Response.json({ error: "Unit price cannot be negative" }, { status: 400 });
+    const result = await query(
+      `UPDATE project_items SET quantity=$2, unit_price=$3, supplier=$4, expected_delivery=$5, status=$6, notes=$7
+       WHERE id=$1 RETURNING *`,
+      [id, quantity, unitPrice, body.supplier ?? existing.supplier,
+        body.expected_delivery === undefined ? existing.expected_delivery : body.expected_delivery || null,
+        status, body.notes ?? existing.notes],
+    );
     if (!result.rows[0]) return Response.json({ error: "Sourcing line not found" }, { status: 404 });
     return Response.json({ item: result.rows[0] });
   } catch (error) {
