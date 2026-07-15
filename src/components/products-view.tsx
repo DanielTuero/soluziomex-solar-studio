@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Boxes, Edit3, ImagePlus, PackagePlus, Search, Trash2, X } from "lucide-react";
+import { Boxes, Edit3, ExternalLink, ImagePlus, PackagePlus, Search, Trash2, X } from "lucide-react";
 import type { Product } from "@/lib/types";
 import { money } from "@/lib/economics";
 
@@ -29,7 +29,7 @@ export function ProductsView() {
 
   const visible = useMemo(() => products.filter((product) =>
     (category === "All" || product.category === category)
-    && `${product.name} ${product.model} ${product.manufacturer} ${product.sku}`.toLowerCase().includes(search.toLowerCase()),
+    && `${product.name} ${product.model} ${product.manufacturer} ${product.sku} ${product.source_url}`.toLowerCase().includes(search.toLowerCase()),
   ), [products, search, category]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -81,6 +81,7 @@ export function ProductsView() {
             <span className="product-category">{product.category} · {product.sku}</span>
             <h3>{product.name}</h3>
             <div className="product-model">{product.manufacturer} · {product.model}</div>
+            {product.source_url && <a className="product-source" href={product.source_url} target="_blank" rel="noopener noreferrer" title={product.source_url}><ExternalLink size={12}/>View source · {sourceHost(product.source_url)}</a>}
             <div className="product-price"><div><strong>{money(Number(product.unit_cost))}</strong><small> per unit</small></div><span className={`status ${product.status.replace(" ", "-")}`}>{product.status}</span></div>
             <div className="product-actions">
               <button className="button secondary small" onClick={() => setEditing(product)}><Edit3 size={13} />Edit</button>
@@ -105,6 +106,7 @@ function ProductModal({ product, close, submit }: { product: Product | null; clo
         <Field name="model" label="Model" defaultValue={product?.model} placeholder="Model number" />
         <Field name="unit_cost" label="Unit price (MXN)" type="number" step="0.01" defaultValue={product?.unit_cost} required />
         <Select name="status" label="Availability" options={availability} defaultValue={product?.status} />
+        <div className="form-field full"><label>Source link</label><input name="source_url" defaultValue={product?.source_url} placeholder="supplier.com/product or full URL"/><span className="form-help">Where you found or purchased this product. The catalog will display it as a clickable link.</span></div>
         <div className="form-field full"><label>Description</label><textarea name="description" defaultValue={product?.description} placeholder="Technical notes, warranty, certifications…" /></div>
         <div className="form-field full"><label>{product?.has_image ? "Replace product image" : "Product image"}</label><label className="upload-box"><span><ImagePlus size={17} />{product?.has_image ? "Choose a replacement image" : "Upload JPG, PNG or WebP"}</span><input name="image" type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} /></label><span className="form-help">Leave empty to keep the current image. Maximum 5 MB.</span></div>
       </div></div>
@@ -115,3 +117,4 @@ function ProductModal({ product, close, submit }: { product: Product | null; clo
 
 function Field(props: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) { const { label, ...rest } = props; return <div className="form-field"><label>{label}</label><input {...rest} /></div>; }
 function Select({ name, label, options, defaultValue }: { name: string; label: string; options: string[]; defaultValue?: string }) { return <div className="form-field"><label>{label}</label><select name={name} defaultValue={defaultValue}>{options.map((item) => <option key={item}>{item}</option>)}</select></div>; }
+function sourceHost(value:string) { try { return new URL(value).hostname.replace(/^www\./, ""); } catch { return "Source"; } }

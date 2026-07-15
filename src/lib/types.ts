@@ -14,6 +14,7 @@ export type Product = {
   status: string;
   has_image: boolean;
   description: string;
+  source_url: string;
 };
 
 export type Project = {

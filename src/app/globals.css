@@ -133,6 +133,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 36px); line-height: 1.12; }
 .product-category { color: var(--forest-2); font-size: 8px; letter-spacing: .09em; text-transform: uppercase; font-weight: 800; }
 .product-body h3 { min-height: 38px; font-size: 14px; margin: 6px 0 4px; }
 .product-model { color: var(--muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.product-source { min-width:0;display:flex;align-items:center;gap:5px;margin-top:9px;color:var(--forest-2);font-size:9px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }.product-source:hover { text-decoration:underline; }.product-source svg { flex:0 0 auto; }
 .product-price { display: flex; align-items: end; justify-content: space-between; gap: 10px; margin-top: 15px; padding-top: 13px; border-top: 1px solid #edf1ee; }
 .product-price strong { font: 700 15px var(--font-display); }.product-price small { color: var(--muted); font-size: 9px; }
 .product-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 13px; padding-top: 12px; border-top: 1px solid #edf1ee; }
