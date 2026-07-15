@@ -3,23 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, Moon, Search, ShieldCheck, Sun, SunMedium } from "lucide-react";
+import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, LogOut, Moon, Search, ShieldCheck, Sun, SunMedium } from "lucide-react";
 
 const navigation = [
-  { href: "/", label: "Portfolio", icon: LayoutDashboard },
-  { href: "/projects", label: "Projects", icon: FolderKanban },
-  { href: "/products", label: "Product catalog", icon: Boxes },
-  { href: "/cost-catalog", label: "Cost catalog", icon: ClipboardList },
-  { href: "/partners", label: "Partners", icon: Building2 },
-  { href: "/operations", label: "Data & history", icon: DatabaseBackup },
-  { href: "/settings", label: "Security", icon: ShieldCheck },
+  { href: "/", section:"portfolio", label: "Portfolio", icon: LayoutDashboard },
+  { href: "/projects", section:"projects", label: "Projects", icon: FolderKanban },
+  { href: "/products", section:"products", label: "Product catalog", icon: Boxes },
+  { href: "/cost-catalog", section:"cost_catalog", label: "Cost catalog", icon: ClipboardList },
+  { href: "/partners", section:"partners", label: "Partners", icon: Building2 },
+  { href: "/operations", section:"operations", label: "Data & history", icon: DatabaseBackup },
+  { href: "/settings", section:"security", label: "Security", icon: ShieldCheck },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [darkMode, setDarkMode] = useState(false);
+  const [permissions, setPermissions] = useState<string[] | null>(null);
+  const [displayName, setDisplayName] = useState("Admin");
+  const [securityEnabled, setSecurityEnabled] = useState(false);
   useEffect(() => {
     setDarkMode(document.documentElement.dataset.theme === "dark");
+    if (pathname !== "/unlock") void fetch("/api/security/status", { cache:"no-store" }).then(response=>response.json()).then(status=>{setPermissions(status.permissions??[]);setSecurityEnabled(Boolean(status.enabled));if(status.user?.display_name)setDisplayName(status.user.display_name)});
   }, []);
   useEffect(() => { if (pathname !== "/unlock") void fetch("/api/backups", { cache: "no-store" }); }, []);
 
@@ -53,7 +57,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav className="side-nav" aria-label="Main navigation">
           <span className="nav-label">Workspace</span>
-          {navigation.map(({ href, label, icon: Icon }) => {
+          {navigation.filter(item=>permissions?.includes(item.section)).map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return <Link key={href} href={href} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</Link>;
           })}
@@ -68,7 +72,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="search"><Search size={17} /><span>Search projects, products, suppliers…</span><kbd>⌘ K</kbd></div>
           <div className="environment"><span />Local workspace</div>
           {themeToggle}
-          <div className="avatar">DS</div>
+          <div className="avatar" title={displayName}>{displayName.split(/\s+/).map(part=>part[0]).join("").slice(0,2).toUpperCase()}</div>
+          {securityEnabled&&<Link href="/api/security/launch" className="sign-out-button" title="Sign out" aria-label="Sign out"><LogOut size={15}/></Link>}
         </header>
         <div className="page-wrap">{children}</div>
       </main>

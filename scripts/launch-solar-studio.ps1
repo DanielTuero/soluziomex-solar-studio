@@ -27,10 +27,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Solar Studio dependencies could not be installed." }
   }
 
-  if (-not (Test-Path -LiteralPath $databasePath)) {
-    & npm.cmd run db:setup
-    if ($LASTEXITCODE -ne 0) { throw "The Solar Studio database could not be prepared." }
-  }
+  & npm.cmd run db:setup
+  if ($LASTEXITCODE -ne 0) { throw "The Solar Studio database could not be prepared." }
 
   if (-not (Test-Path -LiteralPath (Join-Path $projectRoot ".next\BUILD_ID"))) {
     & npm.cmd run build

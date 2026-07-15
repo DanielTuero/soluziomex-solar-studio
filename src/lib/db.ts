@@ -61,7 +61,8 @@ export async function backupDatabase(destination: string) {
   await sqlite.backup(destination);
 }
 
-const restoreTables = ["products", "product_images", "projects", "revenue_models", "project_items", "project_costs", "cost_catalog", "partners", "project_partners", "partner_quotes", "app_security", "audit_logs"];
+const dataRestoreTables = ["products", "product_images", "projects", "revenue_models", "project_items", "project_costs", "cost_catalog", "partners", "project_partners", "partner_quotes", "audit_logs"];
+const securityRestoreTables = ["app_security", "app_users", "app_user_permissions"];
 
 export function validateDatabaseBackup(source: string) {
   const check = new Database(source, { readonly: true });
@@ -69,7 +70,7 @@ export function validateDatabaseBackup(source: string) {
     const result = check.pragma("quick_check") as Array<{ quick_check: string }>;
     if (result[0]?.quick_check !== "ok") throw new Error("The selected backup did not pass its database integrity check.");
     const available = new Set((check.prepare("SELECT name FROM sqlite_master WHERE type='table'").all() as Array<{name:string}>).map(row => row.name));
-    const missing = restoreTables.filter(table => !available.has(table));
+    const missing = dataRestoreTables.filter(table => !available.has(table));
     if (missing.length) throw new Error(`This is not a complete Solar Studio backup. Missing data: ${missing.join(", ")}.`);
   } finally {
     check.close();
@@ -79,13 +80,16 @@ export function validateDatabaseBackup(source: string) {
 export function restoreDatabase(source: string) {
   validateDatabaseBackup(source);
 
-  const deleteOrder = ["partner_quotes", "project_partners", "partners", "project_items", "project_costs", "revenue_models", "product_images", "cost_catalog", "projects", "products", "app_security", "audit_logs"];
+  const dataDeleteOrder = ["partner_quotes", "project_partners", "partners", "project_items", "project_costs", "revenue_models", "product_images", "cost_catalog", "projects", "products", "audit_logs"];
   const escapedSource = source.replace(/'/g, "''");
   sqlite.exec(`ATTACH DATABASE '${escapedSource}' AS restored`);
   try {
     const restoredTables = new Set((sqlite.prepare("SELECT name FROM restored.sqlite_master WHERE type='table'").all() as Array<{name:string}>).map(row => row.name));
-    const missing = restoreTables.filter(table => !restoredTables.has(table));
+    const missing = dataRestoreTables.filter(table => !restoredTables.has(table));
     if (missing.length) throw new Error(`This backup predates required Solar Studio data: ${missing.join(", ")}.`);
+    const includesUserSecurity = securityRestoreTables.every(table => restoredTables.has(table));
+    const restoreTables = includesUserSecurity ? [...dataRestoreTables, ...securityRestoreTables] : dataRestoreTables;
+    const deleteOrder = includesUserSecurity ? ["app_user_permissions", "app_users", ...dataDeleteOrder, "app_security"] : dataDeleteOrder;
 
     sqlite.pragma("foreign_keys = OFF");
     sqlite.exec("BEGIN IMMEDIATE");
