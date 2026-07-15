@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Boxes, Building2, ClipboardList, DatabaseBackup, FolderKanban, LayoutDashboard, Leaf, LogOut, Moon, Search, ShieldCheck, Sun, SunMedium } from "lucide-react";
@@ -50,15 +51,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a href="/" className="brand">
+        <Link href="/" className="brand">
           <span className="brand-mark"><SunMedium size={22} /></span>
           <span><strong>Solar Studio</strong><small>by Soluziomex</small></span>
-        </a>
+        </Link>
         <nav className="side-nav" aria-label="Main navigation">
           <span className="nav-label">Workspace</span>
           {navigation.filter(item=>permissions?.includes(item.section)).map(({ href, label, icon: Icon }) => {
             const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
-            return <a key={href} href={href} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</a>;
+            return <Link key={href} href={href} prefetch={href === "/settings" ? false : undefined} className={active ? "nav-link active" : "nav-link"}><Icon size={18} />{label}</Link>;
           })}
         </nav>
         <div className="sidebar-foot">
