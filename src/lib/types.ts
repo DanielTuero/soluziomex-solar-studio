@@ -64,7 +64,7 @@ export type ProjectCost = {
 export type ProjectValidationPayment = {
   id: string;
   project_id: string;
-  source_type: "Item" | "Cost" | "Other";
+  source_type: "Revenue" | "OperatingExpense";
   source_id: string | null;
   label: string;
   projected_amount: number;

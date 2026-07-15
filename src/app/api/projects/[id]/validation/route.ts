@@ -13,22 +13,24 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const paidOn = String(form.get("paid_on") || "");
     const vendor = String(form.get("vendor") || "").trim();
     const notes = String(form.get("notes") || "").trim();
-    if (!["Item", "Cost", "Other"].includes(sourceType)) return Response.json({ error:"Choose a valid projected cost line." }, { status:400 });
-    if (!Number.isFinite(actualAmount) || actualAmount <= 0) return Response.json({ error:"Enter the amount that was actually paid." }, { status:400 });
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) return Response.json({ error:"Choose the payment date." }, { status:400 });
+    if (!["Revenue", "OperatingExpense"].includes(sourceType)) return Response.json({ error:"Choose a valid revenue or operating expense line." }, { status:400 });
+    if (!Number.isFinite(actualAmount) || actualAmount <= 0) return Response.json({ error:"Enter the actual amount received or paid." }, { status:400 });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(paidOn)) return Response.json({ error:"Choose the transaction date." }, { status:400 });
 
     let label = String(form.get("label") || "").trim();
-    let projectedAmount = Number(form.get("projected_amount") || 0);
-    if (sourceType === "Item") {
-      const { rows } = await query<{name:string;projected_amount:number}>(`SELECT products.name, project_items.quantity*project_items.unit_price AS projected_amount FROM project_items JOIN products ON products.id=project_items.product_id WHERE project_items.id=$1 AND project_items.project_id=$2`, [sourceId,id]);
-      if (!rows[0]) return Response.json({ error:"That projected product line no longer exists." }, { status:404 });
-      label=rows[0].name; projectedAmount=Number(rows[0].projected_amount);
-    } else if (sourceType === "Cost") {
-      const { rows } = await query<{label:string;amount:number}>("SELECT label, amount FROM project_costs WHERE id=$1 AND project_id=$2 AND cost_category='Installation'", [sourceId,id]);
-      if (!rows[0]) return Response.json({ error:"That projected installation cost no longer exists." }, { status:404 });
+    const projectedValue = form.get("projected_amount");
+    let projectedAmount = projectedValue === null ? Number.NaN : Number(projectedValue);
+    if (sourceType === "Revenue") {
+      const { rows } = await query<{monthly_customer_fee:number}>("SELECT monthly_customer_fee FROM revenue_models WHERE project_id=$1", [id]);
+      if (!rows[0]) return Response.json({ error:"Save the customer revenue model before recording actual revenue." }, { status:404 });
+      if (!Number.isFinite(projectedAmount) || projectedAmount < 0) projectedAmount=Number(rows[0].monthly_customer_fee);
+      label="Customer revenue";
+    } else if (sourceId) {
+      const { rows } = await query<{label:string;amount:number}>("SELECT label, amount FROM project_costs WHERE id=$1 AND project_id=$2 AND cost_category='Maintenance'", [sourceId,id]);
+      if (!rows[0]) return Response.json({ error:"That projected operating expense no longer exists." }, { status:404 });
       label=rows[0].label; projectedAmount=Number(rows[0].amount);
     } else {
-      if (!label) return Response.json({ error:"Describe the unplanned payment." }, { status:400 });
+      if (!label) return Response.json({ error:"Describe the operating expense." }, { status:400 });
       if (!Number.isFinite(projectedAmount) || projectedAmount < 0) return Response.json({ error:"Enter a valid projected amount." }, { status:400 });
       const project = await query("SELECT id FROM projects WHERE id=$1", [id]);
       if (!project.rows[0]) return Response.json({ error:"Project not found." }, { status:404 });
@@ -37,7 +39,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const receiptValue = form.get("receipt");
     const receipt = receiptValue instanceof File && receiptValue.size > 0 ? receiptValue : null;
     if (receipt && (!receiptTypes.has(receipt.type) || receipt.size > maxReceiptBytes)) {
-      return Response.json({ error:"Attach a PDF, JPG, PNG, or WebP receipt up to 10 MB." }, { status:400 });
+      return Response.json({ error:"Attach a PDF, JPG, PNG, or WebP receipt or invoice up to 10 MB." }, { status:400 });
     }
     const receiptBytes = receipt ? Buffer.from(await receipt.arrayBuffer()) : null;
     const result = await query(

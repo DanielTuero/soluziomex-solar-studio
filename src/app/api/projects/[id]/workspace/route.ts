@@ -22,7 +22,9 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
              ORDER BY partners.company_name`, [id]),
       query(`SELECT id, project_id, source_type, source_id, label, projected_amount, actual_amount, vendor, paid_on, notes,
                     receipt_name, receipt_mime, (receipt_bytes IS NOT NULL) AS has_receipt, created_at
-             FROM project_validation_payments WHERE project_id=$1 ORDER BY paid_on DESC, created_at DESC`, [id]),
+             FROM project_validation_payments
+             WHERE project_id=$1 AND source_type IN ('Revenue','OperatingExpense')
+             ORDER BY paid_on DESC, created_at DESC`, [id]),
     ]);
     if (!projectResult.rows[0]) return Response.json({ error: "Project not found" }, { status: 404 });
     return Response.json({
