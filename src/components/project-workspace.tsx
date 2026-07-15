@@ -3,19 +3,20 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowLeft, ArrowRight, Banknote, Boxes, CalendarClock, CircleDollarSign, FileChartColumn, PackagePlus, Pencil, Plus, Save, Trash2, TrendingUp, Users, Zap } from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight, BadgeCheck, Banknote, Boxes, CalendarClock, CheckCircle2, CircleDollarSign, FileChartColumn, FileText, PackagePlus, Pencil, Plus, Receipt, Save, Trash2, TrendingUp, Upload, Users, Zap } from "lucide-react";
 import { annualMaintenanceCost, calculateEconomics, money, number } from "@/lib/economics";
 import type { Project, ProjectCost, ProjectItem, RevenueModel, WorkspaceData } from "@/lib/types";
+import { buildValidationRows, validationSummary } from "@/lib/validation";
 
-type Tab = "overview" | "inventory" | "costs" | "economics" | "financial";
+type Tab = "overview" | "inventory" | "costs" | "validation" | "economics" | "financial";
 const tabs:{id:Tab;label:string;icon:React.ElementType}[]=[
-  {id:'overview',label:'Overview',icon:FileChartColumn},{id:'inventory',label:'Products & sourcing',icon:Boxes},{id:'costs',label:'Project costs',icon:Banknote},{id:'economics',label:'Customer economics',icon:TrendingUp},{id:'financial',label:'Financial model',icon:CircleDollarSign},
+  {id:'overview',label:'Overview',icon:FileChartColumn},{id:'inventory',label:'Products & sourcing',icon:Boxes},{id:'costs',label:'Project costs',icon:Banknote},{id:'validation',label:'Validation',icon:BadgeCheck},{id:'economics',label:'Customer economics',icon:TrendingUp},{id:'financial',label:'Financial model',icon:CircleDollarSign},
 ];
 const productCategories=['Solar panels','Inverters','Racking','Cables','Electrical','Monitoring','Batteries','Transformers','Other'];
 const productAvailability=['Available','Low stock','Backordered','Discontinued'];
 
 export function ProjectWorkspace({projectId}:{projectId:string}){
-  const[data,setData]=useState<WorkspaceData|null>(null);const[tab,setTab]=useState<Tab>('overview');const[error,setError]=useState('');const[saving,setSaving]=useState(false);const[addItem,setAddItem]=useState(false);const[editingItem,setEditingItem]=useState<ProjectItem|null>(null);const[addCost,setAddCost]=useState(false);const[editingCost,setEditingCost]=useState<ProjectCost|null>(null);
+  const[data,setData]=useState<WorkspaceData|null>(null);const[tab,setTab]=useState<Tab>('overview');const[error,setError]=useState('');const[saving,setSaving]=useState(false);const[addItem,setAddItem]=useState(false);const[editingItem,setEditingItem]=useState<ProjectItem|null>(null);const[addCost,setAddCost]=useState(false);const[editingCost,setEditingCost]=useState<ProjectCost|null>(null);const[validationSource,setValidationSource]=useState<string|null>(null);
   const load=()=>fetch(`/api/projects/${projectId}/workspace`).then(async r=>{const d=await r.json();if(!r.ok)throw new Error(d.error);setData(d)}).catch(e=>setError(e.message));
   useEffect(()=>{ void load(); },[projectId]);
   const economics=useMemo(()=>data?calculateEconomics(data.project,data.items,data.costs,data.revenue,data.installers):null,[data]);
@@ -31,6 +32,8 @@ export function ProjectWorkspace({projectId}:{projectId:string}){
   async function submitItemEdit(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!editingItem)return;const form=new FormData(e.currentTarget);const scope=String(form.get('edit_scope')||'project');form.delete('edit_scope');const r=scope==='catalog'?await fetch(`/api/products/${editingItem.product_id}`,{method:'PATCH',body:form}):await fetch(`/api/items/${editingItem.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(form))});const d=await r.json();if(!r.ok){setError(d.error);return}setEditingItem(null);load()}
   async function submitCost(e:FormEvent<HTMLFormElement>){e.preventDefault();const body=Object.fromEntries(new FormData(e.currentTarget));const r=await fetch(`/api/projects/${projectId}/costs`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){setError(d.error);return}setAddCost(false);load()}
   async function submitCostEdit(e:FormEvent<HTMLFormElement>){e.preventDefault();if(!editingCost)return;const body=Object.fromEntries(new FormData(e.currentTarget));const r=await fetch(`/api/costs/${editingCost.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){setError(d.error);return}setEditingCost(null);load()}
+  async function submitValidation(e:FormEvent<HTMLFormElement>){e.preventDefault();setSaving(true);setError('');const r=await fetch(`/api/projects/${projectId}/validation`,{method:'POST',body:new FormData(e.currentTarget)});const d=await r.json();if(!r.ok){setError(d.error);setSaving(false);return}setValidationSource(null);await load();setSaving(false)}
+  async function removeValidation(id:string){if(!confirm('Remove this actual payment and its receipt?'))return;const r=await fetch(`/api/projects/${projectId}/validation/${id}`,{method:'DELETE'});if(!r.ok){const d=await r.json();setError(d.error);return}load()}
   const e=economics!;
   return <>
     <Link href="/projects" style={{display:'inline-flex',alignItems:'center',gap:6,color:'#627169',fontSize:11,marginBottom:13}}><ArrowLeft size={14}/>Back to projects</Link>
@@ -41,6 +44,7 @@ export function ProjectWorkspace({projectId}:{projectId:string}){
     {tab==='overview'&&<Overview data={data} e={e} setProject={setProject} save={saveProject} saving={saving}/>} 
     {tab==='inventory'&&<InventoryEditor data={data} e={e} add={()=>setAddItem(true)} edit={setEditingItem} remove={(id)=>remove('items',id)} changeStatus={changeItemStatus}/>}
     {tab==='costs'&&<CostsByCategory data={data} e={e} add={()=>setAddCost(true)} remove={(id)=>remove('costs',id)} move={moveCost} edit={setEditingCost}/>}
+    {tab==='validation'&&<ValidationView data={data} add={source=>setValidationSource(source)} remove={removeValidation}/>}
     {tab==='economics'&&<EconomicsView data={data} e={e} setProject={setProject} setRevenue={setRevenue} save={async()=>{await saveProject();await saveRevenue()}} saving={saving}/>}
     {tab==='financial'&&<FinancialModel data={data} e={e}/>}
 
@@ -48,6 +52,7 @@ export function ProjectWorkspace({projectId}:{projectId:string}){
     {editingItem&&<ItemModal data={data} item={editingItem} close={()=>setEditingItem(null)} submit={submitItemEdit}/>}
     {addCost&&<CostCategoryModal catalog={data.costCatalog} close={()=>setAddCost(false)} submit={submitCost}/>}
     {editingCost&&<CostCategoryModal catalog={data.costCatalog} cost={editingCost} close={()=>setEditingCost(null)} submit={submitCostEdit}/>}
+    {validationSource!==null&&<ValidationPaymentModal data={data} initialSource={validationSource} close={()=>setValidationSource(null)} submit={submitValidation} saving={saving}/>}
   </>;
 }
 
@@ -193,6 +198,38 @@ function FinancialModel({data,e}:{data:WorkspaceData;e:ReturnType<typeof calcula
     <div className="metric-grid financial-result-metrics"><Metric label="Project investment" value={money(e.totalProjectCost,true)} note="Full upfront capital requirement" icon={Banknote} hero/><Metric label="Estimated payback" value={payback} note={e.projectPaybackYears===null?'No break-even in current term':`Approximately month ${Math.round(e.projectPaybackYears*12)}`} icon={TrendingUp}/><Metric label="Contract ROI" value={`${number(e.roiPct,1)}%`} note={`${data.revenue.contract_years}-year modeled return`} icon={CircleDollarSign}/><Metric label="Platform NPV" value={money(e.npv,true)} note={`${data.revenue.discount_rate_pct}% discount rate`} icon={FileChartColumn}/></div>
     <BreakevenChart e={e}/>
     <section className="card" style={{marginTop:18}}><div className="card-header"><div><h2>Stakeholder outcomes</h2><p>Nominal cash flows over the full {data.revenue.contract_years}-year contract</p></div></div><div className="mini-metrics" style={{gridTemplateColumns:'repeat(4,1fr)'}}><div className="mini-metric"><span>Total customer fees</span><strong>{money(e.contractRevenue,true)}</strong></div><div className="mini-metric"><span>Installer lifetime income</span><strong>{money(installerLifetime,true)}</strong></div><div className="mini-metric"><span>Maintenance funded</span><strong>{money(maintenanceLifetime,true)}</strong></div><div className="mini-metric"><span>Soluziomex gross cash</span><strong>{money(e.contractPlatformCash,true)}</strong></div></div></section></div>;
+}
+
+function ValidationView({data,add,remove}:{data:WorkspaceData;add:(source:string)=>void;remove:(id:string)=>void}){
+  const rows=buildValidationRows(data.items,data.costs,data.validationPayments);
+  const summary=validationSummary(rows);
+  const hasActuals=data.validationPayments.length>0;
+  const overall=summary.overBudgetLines?"Needs review":hasActuals?"On track":"Awaiting actuals";
+  return <>
+    <div className="validation-heading"><div><h2>Projected vs. actual validation</h2><p>Attach real payments and receipts to the original capital budget.</p></div><button className="button primary small" onClick={()=>add('')}><Receipt size={14}/>Add actual payment</button></div>
+    <div className="metric-grid"><Metric label="Projected capital" value={money(summary.projected,true)} note={`${summary.totalLines} budget lines`} icon={FileChartColumn} hero/><Metric label="Actually paid" value={money(summary.actual,true)} note={`${data.validationPayments.length} recorded payment${data.validationPayments.length===1?'':'s'}`} icon={Receipt}/><Metric label={summary.variance>=0?'Remaining budget':'Budget overrun'} value={money(Math.abs(summary.variance),true)} note={summary.variance>=0?'Projected amount not yet spent':'Actual payments exceed projection'} icon={summary.variance>=0?Banknote:AlertTriangle}/><Metric label="Validation status" value={overall} note={`${summary.validatedLines} of ${summary.totalLines} lines have actuals`} icon={summary.overBudgetLines?AlertTriangle:CheckCircle2}/></div>
+    <section className="card validation-comparison-card"><div className="card-header"><div><h2>Budget comparison</h2><p>Products and installation costs are pulled directly from the project projection.</p></div><span className={`validation-status ${overall.replace(/\s/g,'-')}`}>{overall}</span></div>
+      {rows.length?<div className="table-wrap"><table className="data-table validation-table"><thead><tr><th>Projection line</th><th>Projected</th><th>Actually paid</th><th>Remaining / over</th><th>Evidence</th><th>Status</th><th></th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><td><div className="table-title"><div><span className="project-code">{row.source_type==='Item'?'Product':row.source_type==='Cost'?'Installation cost':'Unplanned / other'}</span><strong>{row.label}</strong></div></div></td><td>{money(row.projected)}</td><td><strong>{money(row.actual)}</strong></td><td className={row.variance<0?'variance-over':'variance-ok'}>{row.actual===0?'—':`${row.variance<0?'Over ':''}${money(Math.abs(row.variance))}`}</td><td>{row.paymentCount?`${row.paymentCount} payment${row.paymentCount===1?'':'s'}`:'No actuals'}</td><td><span className={`validation-status ${row.status.replace(/\s/g,'-')}`}>{row.status}</span></td><td><button className="button ghost small" onClick={()=>add(row.source_type==='Other'?'Other':row.key)} title="Record payment"><Plus size={13}/></button></td></tr>)}</tbody></table></div>:<Empty icon={BadgeCheck} title="No projected costs yet" text="Add products or installation costs first, or record an unplanned payment."/>}
+    </section>
+    <section className="card validation-history"><div className="card-header"><div><h2>Actual payment history</h2><p>Paid amounts, vendors, dates, notes, and receipt evidence.</p></div></div>
+      {data.validationPayments.length?<div className="table-wrap"><table className="data-table"><thead><tr><th>Paid date</th><th>Payment</th><th>Vendor</th><th>Actual paid</th><th>Receipt</th><th>Notes</th><th></th></tr></thead><tbody>{data.validationPayments.map(payment=><tr key={payment.id}><td>{formatWorkspaceDate(payment.paid_on)}</td><td><div className="table-title"><div><span className="project-code">{payment.source_type}</span><strong>{payment.label}</strong></div></div></td><td>{payment.vendor||'—'}</td><td><strong>{money(Number(payment.actual_amount))}</strong></td><td>{payment.has_receipt?<a className="receipt-link" href={`/api/projects/${data.project.id}/validation/${payment.id}/receipt`} target="_blank" rel="noreferrer"><FileText size={13}/>{payment.receipt_name||'View receipt'}</a>:<span className="receipt-missing">Missing</span>}</td><td>{payment.notes||'—'}</td><td><button className="button ghost small danger-text" onClick={()=>remove(payment.id)} title="Remove payment"><Trash2 size={13}/></button></td></tr>)}</tbody></table></div>:<Empty icon={Receipt} title="No actual payments recorded" text="Add the first payment and attach its receipt to begin validating this project."/>}
+    </section>
+  </>;
+}
+
+function ValidationPaymentModal({data,initialSource,close,submit,saving}:{data:WorkspaceData;initialSource:string;close:()=>void;submit:(event:FormEvent<HTMLFormElement>)=>void;saving:boolean}){
+  const sources=[...data.items.map(item=>({key:`Item:${item.id}`,type:'Item',id:item.id,label:item.product_name,projected:Number(item.quantity)*Number(item.unit_price)})),...data.costs.filter(cost=>(cost.cost_category||'Installation')==='Installation').map(cost=>({key:`Cost:${cost.id}`,type:'Cost',id:cost.id,label:cost.label,projected:Number(cost.amount)})),{key:'Other',type:'Other',id:'',label:'Unplanned / other payment',projected:0}];
+  const[startSource]=useState(()=>sources.some(source=>source.key===initialSource)?initialSource:(sources[0]?.key||'Other'));
+  const[sourceKey,setSourceKey]=useState(startSource);
+  const source=sources.find(entry=>entry.key===sourceKey)||sources[sources.length-1];
+  return <div className="modal-backdrop"><form className="modal validation-modal" onSubmit={submit}><div className="modal-head"><div><p className="eyebrow">Project validation</p><h2>Record an actual payment</h2></div><button type="button" className="button ghost small" onClick={close}>×</button></div><div className="modal-body"><div className="form-grid">
+    <div className="form-field full"><label>Projected cost line</label><select value={sourceKey} onChange={event=>setSourceKey(event.target.value)}>{sources.map(option=><option key={option.key} value={option.key}>{option.type==='Other'?'Unplanned / other':`${option.type==='Item'?'Product':'Installation'} · ${option.label} · ${money(option.projected)}`}</option>)}</select></div>
+    <input type="hidden" name="source_type" value={source.type}/><input type="hidden" name="source_id" value={source.id}/>
+    {source.type==='Other'?<><Field name="label" label="Payment description" placeholder="Unexpected permit, additional freight…" required/><Field name="projected_amount" label="Original projection (MXN)" type="number" min="0" step="0.01" defaultValue="0" required/></>:<div className="form-field full"><div className="validation-projection-summary"><span>Current projection</span><strong>{money(source.projected)}</strong><small>{source.label}</small></div></div>}
+    <Field name="actual_amount" label="Amount actually paid (MXN)" type="number" min="0.01" step="0.01" required/><Field name="paid_on" label="Payment date" type="date" defaultValue={new Date().toISOString().slice(0,10)} required/><Field name="vendor" label="Paid to / vendor" placeholder="Supplier or contractor"/>
+    <div className="form-field"><label>Receipt or invoice</label><label className="validation-upload"><Upload size={15}/><span>PDF or image · up to 10 MB</span><input name="receipt" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"/></label></div>
+    <div className="form-field full"><label>Validation notes</label><textarea name="notes" placeholder="Payment reference, variance explanation, approval, or follow-up…"/></div>
+  </div></div><div className="modal-actions"><button type="button" className="button secondary" onClick={close}>Cancel</button><button className="button primary" disabled={saving}><Receipt size={14}/>{saving?'Saving payment…':'Save actual payment'}</button></div></form></div>;
 }
 
 function Metric({label,value,note,icon:Icon,hero=false}:{label:string;value:string;note:string;icon:React.ElementType;hero?:boolean}){return <div className={`metric-card ${hero?'hero':''}`}><div className="metric-top"><span>{label}</span><span className="metric-icon"><Icon size={16}/></span></div><div className="metric-value">{value}</div><div className="metric-note">{note}</div></div>}

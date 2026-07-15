@@ -62,6 +62,7 @@ export async function backupDatabase(destination: string) {
 }
 
 const dataRestoreTables = ["products", "product_images", "projects", "revenue_models", "project_items", "project_costs", "cost_catalog", "partners", "project_partners", "partner_quotes", "audit_logs"];
+const optionalDataRestoreTables = ["project_validation_payments"];
 const securityRestoreTables = ["app_security", "app_users", "app_user_permissions"];
 
 export function validateDatabaseBackup(source: string) {
@@ -80,7 +81,7 @@ export function validateDatabaseBackup(source: string) {
 export function restoreDatabase(source: string) {
   validateDatabaseBackup(source);
 
-  const dataDeleteOrder = ["partner_quotes", "project_partners", "partners", "project_items", "project_costs", "revenue_models", "product_images", "cost_catalog", "projects", "products", "audit_logs"];
+  const dataDeleteOrder = ["project_validation_payments", "partner_quotes", "project_partners", "partners", "project_items", "project_costs", "revenue_models", "product_images", "cost_catalog", "projects", "products", "audit_logs"];
   const escapedSource = source.replace(/'/g, "''");
   sqlite.exec(`ATTACH DATABASE '${escapedSource}' AS restored`);
   try {
@@ -88,7 +89,8 @@ export function restoreDatabase(source: string) {
     const missing = dataRestoreTables.filter(table => !restoredTables.has(table));
     if (missing.length) throw new Error(`This backup predates required Solar Studio data: ${missing.join(", ")}.`);
     const includesUserSecurity = securityRestoreTables.every(table => restoredTables.has(table));
-    const restoreTables = includesUserSecurity ? [...dataRestoreTables, ...securityRestoreTables] : dataRestoreTables;
+    const optionalRestoreTables = optionalDataRestoreTables.filter(table => restoredTables.has(table));
+    const restoreTables = includesUserSecurity ? [...dataRestoreTables, ...optionalRestoreTables, ...securityRestoreTables] : [...dataRestoreTables, ...optionalRestoreTables];
     const deleteOrder = includesUserSecurity ? ["app_user_permissions", "app_users", ...dataDeleteOrder, "app_security"] : dataDeleteOrder;
 
     sqlite.pragma("foreign_keys = OFF");

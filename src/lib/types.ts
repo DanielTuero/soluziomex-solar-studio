@@ -61,6 +61,23 @@ export type ProjectCost = {
   notes: string;
 };
 
+export type ProjectValidationPayment = {
+  id: string;
+  project_id: string;
+  source_type: "Item" | "Cost" | "Other";
+  source_id: string | null;
+  label: string;
+  projected_amount: number;
+  actual_amount: number;
+  vendor: string;
+  paid_on: string;
+  notes: string;
+  receipt_name: string | null;
+  receipt_mime: string | null;
+  has_receipt: boolean;
+  created_at: string;
+};
+
 export type MaintenanceFrequency = "Monthly" | "Quarterly" | "Semiannual" | "Annual";
 
 export type CostCatalogEntry = {
@@ -158,4 +175,5 @@ export type WorkspaceData = {
   costCatalog: CostCatalogEntry[];
   revenue: RevenueModel;
   products: Product[];
+  validationPayments: ProjectValidationPayment[];
 };

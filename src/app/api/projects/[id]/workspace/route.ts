@@ -3,7 +3,7 @@ import { dbError, query } from "@/lib/db";
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const [projectResult, itemsResult, costsResult, revenueResult, productsResult, costCatalogResult, installersResult] = await Promise.all([
+    const [projectResult, itemsResult, costsResult, revenueResult, productsResult, costCatalogResult, installersResult, validationResult] = await Promise.all([
       query("SELECT * FROM projects WHERE id = $1", [id]),
       query(`SELECT i.*, p.name AS product_name, p.model AS product_model, p.category AS product_category, p.sku AS product_sku
              FROM project_items i JOIN products p ON p.id = i.product_id WHERE i.project_id = $1 ORDER BY i.created_at`, [id]),
@@ -19,11 +19,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
              WHERE pp.project_id=$1 AND pp.is_active=true AND partners.is_archived=false
                AND partners.partner_category='Installer'
              ORDER BY partners.company_name`, [id]),
+      query(`SELECT id, project_id, source_type, source_id, label, projected_amount, actual_amount, vendor, paid_on, notes,
+                    receipt_name, receipt_mime, (receipt_bytes IS NOT NULL) AS has_receipt, created_at
+             FROM project_validation_payments WHERE project_id=$1 ORDER BY paid_on DESC, created_at DESC`, [id]),
     ]);
     if (!projectResult.rows[0]) return Response.json({ error: "Project not found" }, { status: 404 });
     return Response.json({
       project: projectResult.rows[0], items: itemsResult.rows, costs: costsResult.rows, installers: installersResult.rows,
       revenue: revenueResult.rows[0], products: productsResult.rows, costCatalog: costCatalogResult.rows,
+      validationPayments: validationResult.rows.map(payment => ({ ...payment, has_receipt:Boolean(payment.has_receipt) })),
     });
   } catch (error) {
     return dbError(error);
