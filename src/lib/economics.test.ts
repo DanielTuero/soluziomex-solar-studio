@@ -39,4 +39,14 @@ describe("calculateEconomics", () => {
     expect(result.customerDiscountPct).toBe(30);
     expect(result.yearOneRevenue).toBe(360000);
   });
+
+  it("computes Soluziomex break-even from its allocated share rather than total customer fees", () => {
+    const items = [{ id:"i", project_id:"p", product_id:"x", product_name:"Panel", product_model:"X", product_category:"Panels", product_sku:"PX", quantity:100, unit_price:2000, supplier:"", expected_delivery:null, status:"Planned" as const, notes:"" }];
+    const costs = [{ id:"c", project_id:"p", cost_category:"Installation" as const, cost_type:"Labor", label:"Labor", amount:100000, notes:"" }];
+    const fullShare = calculateEconomics(project, items, costs, { ...revenue, installer_share_pct:0, maintenance_reserve_pct:0, platform_share_pct:100 });
+    const halfShare = calculateEconomics(project, items, costs, { ...revenue, installer_share_pct:50, maintenance_reserve_pct:0, platform_share_pct:50 });
+    expect(fullShare.platformYearOne).toBe(fullShare.yearOneRevenue);
+    expect(halfShare.platformYearOne).toBe(halfShare.yearOneRevenue * .5);
+    expect(halfShare.projectPaybackYears!).toBeGreaterThan(fullShare.projectPaybackYears!);
+  });
 });
