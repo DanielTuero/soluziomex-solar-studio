@@ -1,4 +1,5 @@
 import { dbError, query } from "@/lib/db";
+import { normalizeScenarioYears } from "@/lib/timeframes";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -26,7 +27,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     if (!projectResult.rows[0]) return Response.json({ error: "Project not found" }, { status: 404 });
     return Response.json({
       project: projectResult.rows[0], items: itemsResult.rows, costs: costsResult.rows, installers: installersResult.rows,
-      revenue: revenueResult.rows[0], products: productsResult.rows, costCatalog: costCatalogResult.rows,
+      revenue: revenueResult.rows[0] ? {...revenueResult.rows[0],contract_scenario_years:normalizeScenarioYears((revenueResult.rows[0] as {contract_scenario_years?:unknown}).contract_scenario_years,(revenueResult.rows[0] as {contract_years?:number}).contract_years)} : null, products: productsResult.rows, costCatalog: costCatalogResult.rows,
       validationPayments: validationResult.rows.map(payment => ({ ...payment, has_receipt:Boolean(payment.has_receipt) })),
     });
   } catch (error) {

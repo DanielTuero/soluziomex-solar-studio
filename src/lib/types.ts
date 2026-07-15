@@ -160,6 +160,7 @@ export type RevenueModel = {
   monthly_customer_fee: number;
   monthly_installer_payment: number;
   contract_years: number;
+  contract_scenario_years: number[];
   installer_share_pct: number;
   maintenance_reserve_pct: number;
   platform_share_pct: number;

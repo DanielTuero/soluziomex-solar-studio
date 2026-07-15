@@ -9,7 +9,7 @@ const project = {
 } satisfies Project;
 
 const revenue = {
-  project_id: "p", previous_cfe_monthly_bill: 0, residual_cfe_monthly_bill: 0, monthly_customer_fee: 20000, contract_years: 15, installer_share_pct: 10,
+  project_id: "p", previous_cfe_monthly_bill: 0, residual_cfe_monthly_bill: 0, monthly_customer_fee: 20000, contract_years: 15, contract_scenario_years:[10,15,20], installer_share_pct: 10,
   maintenance_reserve_pct: 8, platform_share_pct: 82, monthly_installer_payment: 2000, annual_fee_escalation_pct: 3, discount_rate_pct: 10,
 } satisfies RevenueModel;
 
