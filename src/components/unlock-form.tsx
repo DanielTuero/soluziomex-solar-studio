@@ -23,7 +23,7 @@ export function UnlockForm({nextPath="/"}:{nextPath?:string}) {
       const response = await fetch("/api/security/unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, passcode }),
+        body: JSON.stringify({ username, passcode, security_scope: nextPath.startsWith("/settings") }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to unlock Solar Studio.");

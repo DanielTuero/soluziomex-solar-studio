@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { query } from "@/lib/db";
-import { createPasswordHash, createSessionToken, getAuthenticatedUserFromToken, getUserById, SESSION_COOKIE, verifyPasscode } from "@/lib/security";
+import { createPasswordHash, createSessionToken, getAuthenticatedUserFromToken, getUserById, SECURITY_SESSION_COOKIE, SESSION_COOKIE, verifyPasscode } from "@/lib/security";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -23,7 +23,9 @@ export async function PUT(request: NextRequest) {
     }
     await query("INSERT INTO audit_logs (entity_type, entity_id, entity_name, action, details) VALUES ('Security', $1, $2, 'Updated', 'Account password changed')", [stored.id, stored.display_name]);
     const response = NextResponse.json({ changed: true });
-    response.cookies.set(SESSION_COOKIE, createSessionToken(secret, stored.id), { httpOnly:true, sameSite:"strict", path:"/" });
+    const token = createSessionToken(secret, stored.id);
+    response.cookies.set(SESSION_COOKIE, token, { httpOnly:true, sameSite:"strict", path:"/", maxAge:60*60*24*30 });
+    response.cookies.set(SECURITY_SESSION_COOKIE, token, { httpOnly:true, sameSite:"strict", path:"/", maxAge:60*15 });
     return response;
   } catch {
     return NextResponse.json({ error: "Could not change the password." }, { status: 500 });

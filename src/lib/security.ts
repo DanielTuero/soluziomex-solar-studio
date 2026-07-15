@@ -2,6 +2,7 @@ import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import { query } from "./db";
 
 export const SESSION_COOKIE = "solar_studio_session";
+export const SECURITY_SESSION_COOKIE = "solar_studio_security_session";
 const LEGACY_SESSION_MESSAGE = "solar-studio-unlocked";
 const SESSION_VERSION = "v1";
 
