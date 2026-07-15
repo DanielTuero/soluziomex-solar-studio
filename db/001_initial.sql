@@ -118,7 +118,7 @@ INSERT INTO project_items (project_id, product_id, quantity, unit_price, supplie
 SELECT p.id, pr.id,
   CASE pr.sku WHEN 'PAN-JKM-585' THEN 830 WHEN 'INV-HUA-100' THEN 5 WHEN 'RAC-SCH-01' THEN 830 WHEN 'CAB-PV-6' THEN 7200 WHEN 'MON-HUA-01' THEN 1 ELSE 1 END,
   pr.unit_cost, CASE WHEN pr.category = 'Solar panels' THEN 'Energia Solar del Norte' ELSE 'TecnoVolt MX' END,
-  CURRENT_DATE + CASE WHEN pr.category = 'Solar panels' THEN 24 ELSE 31 END,
+  date('now', CASE WHEN pr.category = 'Solar panels' THEN '+24 days' ELSE '+31 days' END),
   CASE WHEN pr.category = 'Solar panels' THEN 'Ordered' ELSE 'Quoted' END
 FROM projects p
 JOIN products pr ON pr.sku IN ('PAN-JKM-585','INV-HUA-100','RAC-SCH-01','CAB-PV-6','MON-HUA-01','ELE-BOS-01')
@@ -128,7 +128,7 @@ AND NOT EXISTS (SELECT 1 FROM project_items i WHERE i.project_id = p.id AND i.pr
 INSERT INTO project_items (project_id, product_id, quantity, unit_price, supplier, expected_delivery, status)
 SELECT p.id, pr.id,
   CASE pr.sku WHEN 'PAN-CAN-550' THEN 543 WHEN 'INV-SMA-50' THEN 6 WHEN 'RAC-SCH-01' THEN 543 WHEN 'CAB-PV-6' THEN 4900 ELSE 1 END,
-  pr.unit_cost, 'Solaris Supply MX', CURRENT_DATE + 38, 'Planned'
+  pr.unit_cost, 'Solaris Supply MX', date('now', '+38 days'), 'Planned'
 FROM projects p
 JOIN products pr ON pr.sku IN ('PAN-CAN-550','INV-SMA-50','RAC-SCH-01','CAB-PV-6','MON-HUA-01','ELE-BOS-01')
 WHERE p.code = 'SLX-26002'
