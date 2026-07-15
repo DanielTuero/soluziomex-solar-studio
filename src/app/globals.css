@@ -157,6 +157,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 36px); line-height: 1.12; }
 .cost-bucket { min-width: 0; overflow: hidden; }.cost-bucket .card-header > strong { color: var(--forest); font: 750 18px var(--font-display); }.cost-bucket-title { display: flex; align-items: center; gap: 10px; }.cost-bucket-title h2 { font-size: 15px; }
 .cost-table { min-width: 560px; }.cost-note { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }.cost-total-card { margin-top: 18px; }
 .materials-cost-row td { background: #f3f8f5; }.materials-cost-row strong { color: var(--forest); }
+.cost-row-actions { display: flex; align-items: center; gap: 2px; }.move-cost-button { color: var(--forest-2); }.move-cost-button:hover { background: var(--mint); }
 .split-bar { display: flex; height: 13px; overflow: hidden; border-radius: 99px; margin: 20px 18px 12px; background: #edf1ee; }.split-bar span:nth-child(1){background:var(--sun)}.split-bar span:nth-child(2){background:#77aa91}.split-bar span:nth-child(3){background:var(--forest)}
 .legend { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding: 0 18px 18px; }.legend div { font-size: 9px; color: var(--muted); }.legend strong { display: block; color: var(--ink); font: 700 13px var(--font-display); margin-top: 3px; }
 .breakeven-card { margin-top: 18px; overflow: hidden; }
