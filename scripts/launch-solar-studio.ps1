@@ -1,3 +1,5 @@
+param([switch]$OpenApp)
+
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
@@ -7,6 +9,94 @@ $standardLog = Join-Path $projectRoot ".solar-studio-launch.log"
 $errorLog = Join-Path $projectRoot ".solar-studio-launch.err.log"
 $buildIdPath = Join-Path $projectRoot ".next\BUILD_ID"
 $buildVersionPath = Join-Path $projectRoot ".next\solar-studio-commit"
+$appProfilePath = Join-Path $env:LOCALAPPDATA "Soluziomex\Solar Studio\Chrome Profile"
+$appPidPath = Join-Path $env:LOCALAPPDATA "Soluziomex\Solar Studio\solar-studio.pid"
+
+function Get-ChromePath {
+  $candidates = @(
+    (Join-Path $env:ProgramFiles "Google\Chrome\Application\chrome.exe"),
+    (Join-Path ${env:ProgramFiles(x86)} "Google\Chrome\Application\chrome.exe"),
+    (Join-Path $env:LOCALAPPDATA "Google\Chrome\Application\chrome.exe")
+  )
+  return $candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -First 1
+}
+
+function Get-SolarStudioAppProcess {
+  if (-not (Test-Path -LiteralPath $appPidPath)) { return $null }
+  $storedPid = (Get-Content -LiteralPath $appPidPath -Raw).Trim()
+  if ($storedPid -notmatch '^\d+$') { return $null }
+  $process = Get-CimInstance Win32_Process -Filter "ProcessId=$storedPid" -ErrorAction SilentlyContinue
+  if ($process -and $process.Name -eq "chrome.exe" -and $process.CommandLine -like "*$appProfilePath*") { return $process }
+  return $null
+}
+
+function Stop-ProcessTree([int]$RootProcessId) {
+  $children = Get-CimInstance Win32_Process | Where-Object { $_.ParentProcessId -eq $RootProcessId }
+  foreach ($child in $children) { Stop-ProcessTree -RootProcessId $child.ProcessId }
+  Stop-Process -Id $RootProcessId -Force -ErrorAction SilentlyContinue
+}
+
+function Focus-SolarStudioApp([int]$ProcessId) {
+  $shell = New-Object -ComObject WScript.Shell
+  if ($shell.AppActivate($ProcessId)) { return $true }
+  return $shell.AppActivate("Solar Studio")
+}
+
+function Resolve-ExistingApp {
+  $process = Get-SolarStudioAppProcess
+  if (-not $process) {
+    Remove-Item -LiteralPath $appPidPath -Force -ErrorAction SilentlyContinue
+    return $true
+  }
+
+  Add-Type -AssemblyName PresentationFramework
+  $choice = [System.Windows.MessageBox]::Show(
+    "Solar Studio is already running.`n`nYes - open the existing window`nNo - close it and continue in a new window`nCancel - leave the existing window running",
+    "Solar Studio is already open",
+    "YesNoCancel",
+    "Information"
+  )
+  if ($choice -eq "Yes") {
+    if (-not (Focus-SolarStudioApp -ProcessId $process.ProcessId)) {
+      Stop-ProcessTree -RootProcessId $process.ProcessId
+      Remove-Item -LiteralPath $appPidPath -Force -ErrorAction SilentlyContinue
+      return $true
+    }
+    return $false
+  }
+  if ($choice -eq "No") {
+    Stop-ProcessTree -RootProcessId $process.ProcessId
+    Remove-Item -LiteralPath $appPidPath -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 500
+    return $true
+  }
+  return $false
+}
+
+function Start-SolarStudioApp {
+  $chromePath = Get-ChromePath
+  if (-not $chromePath) { throw "Google Chrome is required to open the Solar Studio desktop app." }
+  New-Item -ItemType Directory -Path $appProfilePath -Force | Out-Null
+  $arguments = @(
+    "--user-data-dir=`"$appProfilePath`"",
+    "--app=`"$appUrl/api/security/launch`"",
+    "--start-maximized",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--disable-background-mode"
+  )
+  $launched = Start-Process -FilePath $chromePath -ArgumentList $arguments -PassThru
+  Start-Sleep -Milliseconds 750
+  $process = Get-CimInstance Win32_Process -Filter "ProcessId=$($launched.Id)" -ErrorAction SilentlyContinue
+  if (-not $process) {
+    $process = Get-CimInstance Win32_Process |
+      Where-Object { $_.Name -eq "chrome.exe" -and $_.CommandLine -like "*$appProfilePath*" -and $_.CommandLine -like "*--app=*" } |
+      Select-Object -First 1
+  }
+  if (-not $process) { throw "Solar Studio could not open its app window." }
+  New-Item -ItemType Directory -Path (Split-Path -Parent $appPidPath) -Force | Out-Null
+  Set-Content -LiteralPath $appPidPath -Value $process.ProcessId -NoNewline
+}
 
 function Test-SolarStudio {
   try {
@@ -33,6 +123,8 @@ function Stop-SolarStudio {
 
 try {
   Set-Location $projectRoot
+
+  if ($OpenApp -and -not (Resolve-ExistingApp)) { return }
 
   if (-not (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
     throw "Node.js and npm are required to launch Solar Studio."
@@ -69,6 +161,8 @@ try {
     }
     if (-not $ready) { throw "Solar Studio did not finish starting. Please check .solar-studio-launch.err.log in the Solar Studio folder." }
   }
+
+  if ($OpenApp) { Start-SolarStudioApp }
 
 } catch {
   Add-Type -AssemblyName PresentationFramework
